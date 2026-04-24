@@ -21,7 +21,7 @@ Available addons
 ----------------
 addon | version | maintainers | summary
 --- | --- | --- | ---
-[ssi_attendance_machine](ssi_attendance_machine/) | 14.0.1.0.0 |  | Attendance Machine
+[ssi_attendance_machine](ssi_attendance_machine/) | 14.0.2.0.0 |  | Attendance Machine
 
 [//]: # (end addons)
 
