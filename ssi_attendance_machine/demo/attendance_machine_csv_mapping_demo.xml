@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2024 OpenSynergy Indonesia
+     Copyright 2024 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+    <data noupdate="0">
+
+        <!-- Single Row: check-in and check-out in the same row, combined datetime -->
+        <record
+            id="attendance_machine_csv_mapping_demo_single_row"
+            model="attendance_machine_csv_mapping"
+        >
+            <field name="name">Single Row - Combined Datetime (CSV)</field>
+            <field name="code">MAPPING-SINGLE</field>
+            <field name="active" eval="1" />
+            <field name="file_encoding">utf-8</field>
+            <field name="delimiter">comma</field>
+            <field name="quotechar">"</field>
+            <field name="no_header" eval="0" />
+            <field name="skip_empty_lines" eval="1" />
+            <field name="offset_row">0</field>
+            <field name="offset_column">0</field>
+            <field name="row_mode">single</field>
+            <field name="datetime_mode">combined</field>
+            <field name="employee_column">employee_code</field>
+            <field name="check_in_column">check_in</field>
+            <field name="check_out_column">check_out</field>
+            <field name="datetime_format">%Y-%m-%d %H:%M:%S</field>
+        </record>
+
+        <!-- Separate Rows: check-in and check-out as separate rows, combined datetime -->
+        <record
+            id="attendance_machine_csv_mapping_demo_separate_rows"
+            model="attendance_machine_csv_mapping"
+        >
+            <field name="name">Separate Rows - Combined Datetime (CSV)</field>
+            <field name="code">MAPPING-SEPARATE</field>
+            <field name="active" eval="1" />
+            <field name="file_encoding">utf-8</field>
+            <field name="delimiter">comma</field>
+            <field name="quotechar">"</field>
+            <field name="no_header" eval="0" />
+            <field name="skip_empty_lines" eval="1" />
+            <field name="offset_row">0</field>
+            <field name="offset_column">0</field>
+            <field name="row_mode">separate</field>
+            <field name="datetime_mode">combined</field>
+            <field name="employee_column">employee_code</field>
+            <field name="row_type_column">type</field>
+            <field name="sign_in_value">IN</field>
+            <field name="sign_out_value">OUT</field>
+            <field name="datetime_column">datetime</field>
+            <field name="datetime_format">%Y-%m-%d %H:%M:%S</field>
+        </record>
+
+    </data>
+</odoo>

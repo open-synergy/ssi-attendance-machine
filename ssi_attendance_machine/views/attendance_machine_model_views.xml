@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2024 OpenSynergy Indonesia
+     Copyright 2024 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+<record id="attendance_machine_model_view_search" model="ir.ui.view">
+    <field name="name">attendance_machine_model - search</field>
+    <field name="model">attendance_machine_model</field>
+    <field
+            name="inherit_id"
+            ref="ssi_master_data_mixin.mixin_master_data_view_search"
+        />
+    <field name="mode">primary</field>
+    <field name="arch" type="xml">
+        <data />
+    </field>
+</record>
+
+<record id="attendance_machine_model_view_tree" model="ir.ui.view">
+    <field name="name">attendance_machine_model - tree</field>
+    <field name="model">attendance_machine_model</field>
+    <field name="inherit_id" ref="ssi_master_data_mixin.mixin_master_data_view_tree" />
+    <field name="mode">primary</field>
+    <field name="arch" type="xml">
+        <data />
+    </field>
+</record>
+
+<record id="attendance_machine_model_view_form" model="ir.ui.view">
+    <field name="name">attendance_machine_model - form</field>
+    <field name="model">attendance_machine_model</field>
+    <field name="inherit_id" ref="ssi_master_data_mixin.mixin_master_data_view_form" />
+    <field name="mode">primary</field>
+    <field name="arch" type="xml">
+        <data />
+    </field>
+</record>
+
+<record id="attendance_machine_model_action" model="ir.actions.act_window">
+    <field name="name">Attendance Machine Models</field>
+    <field name="res_model">attendance_machine_model</field>
+    <field name="view_mode">tree,form</field>
+</record>
+
+<menuitem
+        id="attendance_machine_model_menu"
+        name="Attendance Machine Models"
+        parent="menu_attendance_machine_configuration"
+        action="attendance_machine_model_action"
+        groups="attendance_machine_model_group"
+        sequence="10"
+    />
+</odoo>
