@@ -63,12 +63,29 @@
                             attrs="{'invisible':[('state','!=','draft')]}"
                         />
                     <field name="data_ids">
-                        <tree editable="bottom">
+                        <tree>
                             <field name="sequence" />
-                            <field name="data" />
+                            <field name="data" widget="json_viewer" />
                             <field name="employee_id" />
                             <field name="attendance_id" />
                         </tree>
+                        <form>
+                            <group>
+                                <group>
+                                    <field name="sequence" />
+                                    <field name="employee_id" />
+                                    <field name="attendance_id" />
+                                </group>
+                            </group>
+                            <group string="Data">
+                                <field
+                                        name="data"
+                                        widget="json_viewer"
+                                        nolabel="1"
+                                        colspan="2"
+                                    />
+                            </group>
+                        </form>
                     </field>
                 </page>
             </xpath>

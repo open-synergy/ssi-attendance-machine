@@ -14,6 +14,7 @@
     "installable": True,
     "application": False,
     "depends": [
+        "ssi_web_widget_json",
         "ssi_master_data_mixin",
         "ssi_transaction_confirm_mixin",
         "ssi_transaction_done_mixin",
