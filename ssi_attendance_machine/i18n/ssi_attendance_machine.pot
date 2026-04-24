@@ -552,6 +552,7 @@ msgstr ""
 
 #. module: ssi_attendance_machine
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data__data
+#: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_import_view_form
 msgid "Data"
 msgstr ""
 
