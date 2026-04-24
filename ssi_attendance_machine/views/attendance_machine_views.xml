@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2024 OpenSynergy Indonesia
+     Copyright 2024 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+<record id="attendance_machine_view_search" model="ir.ui.view">
+    <field name="name">attendance_machine - search</field>
+    <field name="model">attendance_machine</field>
+    <field name="inherit_id" ref="ssi_master_data_mixin.mixin_master_data_view_search" />
+    <field name="mode">primary</field>
+    <field name="arch" type="xml">
+        <data>
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="attendance_model_id" />
+            </xpath>
+        </data>
+    </field>
+</record>
+
+<record id="attendance_machine_view_tree" model="ir.ui.view">
+    <field name="name">attendance_machine - tree</field>
+    <field name="model">attendance_machine</field>
+    <field name="inherit_id" ref="ssi_master_data_mixin.mixin_master_data_view_tree" />
+    <field name="mode">primary</field>
+    <field name="arch" type="xml">
+        <data>
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="attendance_model_id" />
+                <field name="csv_mapping_id" />
+            </xpath>
+        </data>
+    </field>
+</record>
+
+<record id="attendance_machine_view_form" model="ir.ui.view">
+    <field name="name">attendance_machine - form</field>
+    <field name="model">attendance_machine</field>
+    <field name="inherit_id" ref="ssi_master_data_mixin.mixin_master_data_view_form" />
+    <field name="mode">primary</field>
+    <field name="arch" type="xml">
+        <data>
+            <xpath expr="//notebook/page[@name='note']" position="before">
+                <page name="configuration" string="Configuration">
+                    <group name="configuration_1">
+                        <field name="attendance_model_id" />
+                        <field name="csv_mapping_id" />
+                    </group>
+                </page>
+                <page name="employees" string="Employees">
+                    <field name="employee_ids">
+                        <tree editable="bottom">
+                            <field name="sequence" widget="handle" />
+                            <field name="employee_id" />
+                            <field name="employee_code" />
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+        </data>
+    </field>
+</record>
+
+<record id="attendance_machine_action" model="ir.actions.act_window">
+    <field name="name">Attendance Machines</field>
+    <field name="res_model">attendance_machine</field>
+    <field name="view_mode">tree,form</field>
+</record>
+
+<menuitem
+    id="attendance_machine_menu"
+    name="Attendance Machines"
+    parent="menu_attendance_machine_configuration"
+    action="attendance_machine_action"
+    groups="attendance_machine_group"
+    sequence="30"
+/>
+</odoo>

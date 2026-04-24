@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2024 OpenSynergy Indonesia
+     Copyright 2024 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+<record id="attendance_machine_all_access" model="ir.model.access">
+    <field name="name">attendance_machine - all</field>
+    <field name="model_id" ref="model_attendance_machine" />
+    <field name="perm_read" eval="1" />
+    <field name="perm_write" eval="0" />
+    <field name="perm_create" eval="0" />
+    <field name="perm_unlink" eval="0" />
+</record>
+
+<record id="attendance_machine_user_access" model="ir.model.access">
+    <field name="name">attendance_machine - user</field>
+    <field name="model_id" ref="model_attendance_machine" />
+    <field name="group_id" ref="attendance_machine_group" />
+    <field name="perm_read" eval="1" />
+    <field name="perm_write" eval="1" />
+    <field name="perm_create" eval="1" />
+    <field name="perm_unlink" eval="1" />
+</record>
+</odoo>

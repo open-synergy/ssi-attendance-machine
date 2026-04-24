@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2024 OpenSynergy Indonesia
+     Copyright 2024 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+    <data noupdate="0">
+
+        <record id="attendance_machine_model_demo_zkteco_k40" model="attendance_machine_model">
+            <field name="name">ZKTeco K40</field>
+            <field name="code">ZKTECO-K40</field>
+            <field name="active" eval="1" />
+        </record>
+
+        <record id="attendance_machine_model_demo_fingertec_ta200" model="attendance_machine_model">
+            <field name="name">FingerTec TA200 Plus</field>
+            <field name="code">FTEC-TA200</field>
+            <field name="active" eval="1" />
+        </record>
+
+    </data>
+</odoo>

@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2024 OpenSynergy Indonesia
+     Copyright 2024 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+<record id="attendance_machine_csv_mapping_view_search" model="ir.ui.view">
+    <field name="name">attendance_machine_csv_mapping - search</field>
+    <field name="model">attendance_machine_csv_mapping</field>
+    <field name="inherit_id" ref="ssi_master_data_mixin.mixin_master_data_view_search" />
+    <field name="mode">primary</field>
+    <field name="arch" type="xml">
+        <data>
+            <xpath expr="//field[@name='name']" position="after">
+                <filter name="single_row" string="Single Row" domain="[('row_mode','=','single')]" />
+                <filter name="separate_rows" string="Separate Rows" domain="[('row_mode','=','separate')]" />
+            </xpath>
+        </data>
+    </field>
+</record>
+
+<record id="attendance_machine_csv_mapping_view_tree" model="ir.ui.view">
+    <field name="name">attendance_machine_csv_mapping - tree</field>
+    <field name="model">attendance_machine_csv_mapping</field>
+    <field name="inherit_id" ref="ssi_master_data_mixin.mixin_master_data_view_tree" />
+    <field name="mode">primary</field>
+    <field name="arch" type="xml">
+        <data>
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="row_mode" />
+                <field name="datetime_mode" />
+                <field name="file_encoding" />
+            </xpath>
+        </data>
+    </field>
+</record>
+
+<record id="attendance_machine_csv_mapping_view_form" model="ir.ui.view">
+    <field name="name">attendance_machine_csv_mapping - form</field>
+    <field name="model">attendance_machine_csv_mapping</field>
+    <field name="inherit_id" ref="ssi_master_data_mixin.mixin_master_data_view_form" />
+    <field name="mode">primary</field>
+    <field name="arch" type="xml">
+        <data>
+            <xpath expr="//notebook/page[@name='note']" position="before">
+
+                <!-- File Format -->
+                <page name="file_format" string="File Format">
+                    <group name="file_format_1">
+                        <group>
+                            <field name="file_encoding" />
+                            <field name="delimiter" />
+                            <field name="quotechar" />
+                        </group>
+                        <group>
+                            <field name="no_header" />
+                            <field name="skip_empty_lines" />
+                            <field name="offset_row" />
+                            <field name="offset_column" />
+                        </group>
+                    </group>
+                </page>
+
+                <!-- Column Mapping -->
+                <page name="column_mapping" string="Column Mapping">
+                    <group name="column_mapping_1">
+                        <group>
+                            <field name="row_mode" />
+                            <field name="datetime_mode" />
+                            <field name="employee_column" />
+                        </group>
+                    </group>
+
+                    <!-- Single row: combined datetime -->
+                    <group string="Single Row - Combined Datetime"
+                        attrs="{'invisible': [('row_mode','!=','single'),('datetime_mode','!=','combined')]}">
+                        <group
+                            attrs="{'invisible': ['|',('row_mode','!=','single'),('datetime_mode','!=','combined')]}">
+                            <field name="check_in_column"
+                                attrs="{'invisible': ['|',('row_mode','!=','single'),('datetime_mode','!=','combined')]}" />
+                            <field name="check_out_column"
+                                attrs="{'invisible': ['|',('row_mode','!=','single'),('datetime_mode','!=','combined')]}" />
+                        </group>
+                    </group>
+
+                    <!-- Single row: separate date/time -->
+                    <group string="Single Row - Separate Date/Time"
+                        attrs="{'invisible': ['|',('row_mode','!=','single'),('datetime_mode','!=','separate')]}">
+                        <group
+                            attrs="{'invisible': ['|',('row_mode','!=','single'),('datetime_mode','!=','separate')]}">
+                            <field name="check_in_date_column"
+                                attrs="{'invisible': ['|',('row_mode','!=','single'),('datetime_mode','!=','separate')]}" />
+                            <field name="check_in_time_column"
+                                attrs="{'invisible': ['|',('row_mode','!=','single'),('datetime_mode','!=','separate')]}" />
+                            <field name="check_out_date_column"
+                                attrs="{'invisible': ['|',('row_mode','!=','single'),('datetime_mode','!=','separate')]}" />
+                            <field name="check_out_time_column"
+                                attrs="{'invisible': ['|',('row_mode','!=','single'),('datetime_mode','!=','separate')]}" />
+                        </group>
+                    </group>
+
+                    <!-- Separate rows -->
+                    <group string="Separate Rows"
+                        attrs="{'invisible': [('row_mode','!=','separate')]}">
+                        <group attrs="{'invisible': [('row_mode','!=','separate')]}">
+                            <field name="row_type_column"
+                                attrs="{'invisible': [('row_mode','!=','separate')]}" />
+                            <field name="sign_in_value"
+                                attrs="{'invisible': [('row_mode','!=','separate')]}" />
+                            <field name="sign_out_value"
+                                attrs="{'invisible': [('row_mode','!=','separate')]}" />
+                        </group>
+                        <group attrs="{'invisible': ['|',('row_mode','!=','separate'),('datetime_mode','!=','combined')]}">
+                            <field name="datetime_column"
+                                attrs="{'invisible': ['|',('row_mode','!=','separate'),('datetime_mode','!=','combined')]}" />
+                        </group>
+                        <group attrs="{'invisible': ['|',('row_mode','!=','separate'),('datetime_mode','!=','separate')]}">
+                            <field name="date_column"
+                                attrs="{'invisible': ['|',('row_mode','!=','separate'),('datetime_mode','!=','separate')]}" />
+                            <field name="time_column"
+                                attrs="{'invisible': ['|',('row_mode','!=','separate'),('datetime_mode','!=','separate')]}" />
+                        </group>
+                    </group>
+
+                    <!-- Format strings -->
+                    <group string="Format Strings">
+                        <group>
+                            <field name="datetime_format"
+                                attrs="{'invisible': [('datetime_mode','!=','combined')]}" />
+                            <field name="date_format"
+                                attrs="{'invisible': [('datetime_mode','!=','separate')]}" />
+                            <field name="time_format"
+                                attrs="{'invisible': [('datetime_mode','!=','separate')]}" />
+                        </group>
+                    </group>
+                </page>
+
+            </xpath>
+        </data>
+    </field>
+</record>
+
+<record id="attendance_machine_csv_mapping_action" model="ir.actions.act_window">
+    <field name="name">CSV Mappings</field>
+    <field name="res_model">attendance_machine_csv_mapping</field>
+    <field name="view_mode">tree,form</field>
+</record>
+
+<menuitem
+    id="attendance_machine_csv_mapping_menu"
+    name="CSV Mappings"
+    parent="menu_attendance_machine_configuration"
+    action="attendance_machine_csv_mapping_action"
+    groups="attendance_machine_csv_mapping_group"
+    sequence="20"
+/>
+</odoo>

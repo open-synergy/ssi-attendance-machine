@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2024 OpenSynergy Indonesia
+     Copyright 2024 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+    <data noupdate="0">
+
+        <!-- Machine 1: uses single-row CSV mapping -->
+        <record id="attendance_machine_demo_lobby_a" model="attendance_machine">
+            <field name="name">Lobby A - Main Entrance</field>
+            <field name="code">MACHINE-LOBBY-A</field>
+            <field name="active" eval="1" />
+            <field name="attendance_model_id" ref="attendance_machine_model_demo_zkteco_k40" />
+            <field name="csv_mapping_id" ref="attendance_machine_csv_mapping_demo_single_row" />
+        </record>
+
+        <record id="attendance_machine_employee_demo_al" model="attendance_machine.employee">
+            <field name="machine_id" ref="attendance_machine_demo_lobby_a" />
+            <field name="employee_id" ref="hr.employee_al" />
+            <field name="employee_code">E001</field>
+        </record>
+
+        <record id="attendance_machine_employee_demo_mit" model="attendance_machine.employee">
+            <field name="machine_id" ref="attendance_machine_demo_lobby_a" />
+            <field name="employee_id" ref="hr.employee_mit" />
+            <field name="employee_code">E002</field>
+        </record>
+
+        <record id="attendance_machine_employee_demo_niv" model="attendance_machine.employee">
+            <field name="machine_id" ref="attendance_machine_demo_lobby_a" />
+            <field name="employee_id" ref="hr.employee_niv" />
+            <field name="employee_code">E003</field>
+        </record>
+
+        <record id="attendance_machine_employee_demo_stw" model="attendance_machine.employee">
+            <field name="machine_id" ref="attendance_machine_demo_lobby_a" />
+            <field name="employee_id" ref="hr.employee_stw" />
+            <field name="employee_code">E004</field>
+        </record>
+
+        <!-- Machine 2: uses separate-rows CSV mapping -->
+        <record id="attendance_machine_demo_warehouse" model="attendance_machine">
+            <field name="name">Warehouse - Side Gate</field>
+            <field name="code">MACHINE-WAREHOUSE</field>
+            <field name="active" eval="1" />
+            <field name="attendance_model_id" ref="attendance_machine_model_demo_fingertec_ta200" />
+            <field name="csv_mapping_id" ref="attendance_machine_csv_mapping_demo_separate_rows" />
+        </record>
+
+        <record id="attendance_machine_employee_demo_chs" model="attendance_machine.employee">
+            <field name="machine_id" ref="attendance_machine_demo_warehouse" />
+            <field name="employee_id" ref="hr.employee_chs" />
+            <field name="employee_code">E005</field>
+        </record>
+
+        <record id="attendance_machine_employee_demo_qdp" model="attendance_machine.employee">
+            <field name="machine_id" ref="attendance_machine_demo_warehouse" />
+            <field name="employee_id" ref="hr.employee_qdp" />
+            <field name="employee_code">E006</field>
+        </record>
+
+    </data>
+</odoo>
