@@ -6,9 +6,9 @@
 <data>
 <record id="attendance_machine_import_done" model="base.automation">
     <field
-        name="action_server_id"
-        ref="attendance_machine_import_action_recompute_queue_done_result"
-    />
+                name="action_server_id"
+                ref="attendance_machine_import_action_recompute_queue_done_result"
+            />
     <field name="trigger">on_write</field>
     <field name="filter_pre_domain">[]</field>
     <field name="filter_domain">[('done_queue_job_batch_state','=','finished')]</field>
@@ -16,12 +16,14 @@
 
 <record id="attendance_machine_import_cancel" model="base.automation">
     <field
-        name="action_server_id"
-        ref="attendance_machine_import_action_recompute_queue_cancel_result"
-    />
+                name="action_server_id"
+                ref="attendance_machine_import_action_recompute_queue_cancel_result"
+            />
     <field name="trigger">on_write</field>
     <field name="filter_pre_domain">[]</field>
-    <field name="filter_domain">[('cancel_queue_job_batch_state','=','finished')]</field>
+    <field
+                name="filter_domain"
+            >[('cancel_queue_job_batch_state','=','finished')]</field>
 </record>
 </data>
 </odoo>

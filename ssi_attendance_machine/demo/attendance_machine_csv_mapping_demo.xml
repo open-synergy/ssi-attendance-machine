@@ -6,7 +6,10 @@
     <data noupdate="0">
 
         <!-- Single Row: check-in and check-out in the same row, combined datetime -->
-        <record id="attendance_machine_csv_mapping_demo_single_row" model="attendance_machine_csv_mapping">
+        <record
+            id="attendance_machine_csv_mapping_demo_single_row"
+            model="attendance_machine_csv_mapping"
+        >
             <field name="name">Single Row - Combined Datetime (CSV)</field>
             <field name="code">MAPPING-SINGLE</field>
             <field name="active" eval="1" />
@@ -26,7 +29,10 @@
         </record>
 
         <!-- Separate Rows: check-in and check-out as separate rows, combined datetime -->
-        <record id="attendance_machine_csv_mapping_demo_separate_rows" model="attendance_machine_csv_mapping">
+        <record
+            id="attendance_machine_csv_mapping_demo_separate_rows"
+            model="attendance_machine_csv_mapping"
+        >
             <field name="name">Separate Rows - Combined Datetime (CSV)</field>
             <field name="code">MAPPING-SEPARATE</field>
             <field name="active" eval="1" />

@@ -11,7 +11,9 @@ from odoo import _, fields, models
 from odoo.exceptions import UserError
 
 
-class AttendanceMachineImportData(models.Model):
+class AttendanceMachineImportData(
+    models.Model
+):  # pylint: disable=too-few-public-methods
     """
     One line per row in the attendance file. Stores the raw JSON row data
     and tracks the resulting hr.timesheet_attendance record created from it.
@@ -113,7 +115,9 @@ class AttendanceMachineImportData(models.Model):
         except Exception:
             return naive_dt
 
-    def _extract_datetime_single(self, row, mapping, direction):
+    def _extract_datetime_single(
+        self, row, mapping, direction
+    ):  # pylint: disable=no-else-return
         """
         Extract a datetime value from a single-row mode row.
         direction: 'in' for check-in, 'out' for check-out.
@@ -147,7 +151,9 @@ class AttendanceMachineImportData(models.Model):
             )
             return self._parse_datetime(combined, fmt)
 
-    def _extract_datetime_separate(self, row, mapping):
+    def _extract_datetime_separate(
+        self, row, mapping
+    ):  # pylint: disable=no-else-return
         """
         Extract a datetime value from a separate-rows mode row.
         """
@@ -176,7 +182,9 @@ class AttendanceMachineImportData(models.Model):
     # Queue job methods
     # -------------------------------------------------------------------------
 
-    def _process_attendance(self):
+    def _process_attendance(  # noqa: C901
+        self,
+    ):  # pylint: disable=R0914,R0912,R0915,W8120
         """
         Parse the raw JSON data line and create or update an
         hr.timesheet_attendance record according to the machine's CSV mapping.
@@ -205,10 +213,14 @@ Problem: Employee code '%s' is not registered in the machine's employee list
 Solution: Register the employee code in the attendance machine configuration,
           correct the data in this line, then retry the queue job"""
                 )
-                % (self.import_id.name or str(self.import_id.id), self.sequence, employee_code)
+                % (
+                    self.import_id.name or str(self.import_id.id),
+                    self.sequence,
+                    employee_code,
+                )
             )
 
-        Attendance = self.env["hr.timesheet_attendance"]
+        Attendance = self.env["hr.timesheet_attendance"]  # pylint: disable=invalid-name
 
         if mapping.row_mode == "single":
             check_in_naive = self._extract_datetime_single(row, mapping, "in")

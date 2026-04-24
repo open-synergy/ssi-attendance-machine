@@ -6,7 +6,10 @@
 <record id="attendance_machine_import_view_search" model="ir.ui.view">
     <field name="name">attendance_machine_import - search</field>
     <field name="model">attendance_machine_import</field>
-    <field name="inherit_id" ref="ssi_transaction_mixin.mixin_transaction_view_search" />
+    <field
+            name="inherit_id"
+            ref="ssi_transaction_mixin.mixin_transaction_view_search"
+        />
     <field name="mode">primary</field>
     <field name="arch" type="xml">
         <data>
@@ -42,20 +45,23 @@
             <xpath expr="//group[@name='header_right']" position="inside">
                 <field name="date" />
                 <field name="attendance_file_name" invisible="1" />
-                <field name="attendance_file" filename="attendance_file_name"
-                    widget="binary"
-                    attrs="{'readonly': [('state','!=','draft')]}" />
+                <field
+                        name="attendance_file"
+                        filename="attendance_file_name"
+                        widget="binary"
+                        attrs="{'readonly': [('state','!=','draft')]}"
+                    />
             </xpath>
             <xpath expr="//page[1]" position="before">
                 <page name="import_data" string="Import Data">
                     <button
-                        name="action_load_data"
-                        string="Load Data"
-                        type="object"
-                        class="oe_highlight"
-                        icon="fa-upload"
-                        attrs="{'invisible':[('state','!=','draft')]}"
-                    />
+                            name="action_load_data"
+                            string="Load Data"
+                            type="object"
+                            class="oe_highlight"
+                            icon="fa-upload"
+                            attrs="{'invisible':[('state','!=','draft')]}"
+                        />
                     <field name="data_ids">
                         <tree editable="bottom">
                             <field name="sequence" />
@@ -77,11 +83,11 @@
 </record>
 
 <menuitem
-    id="attendance_machine_import_menu"
-    name="Attendance Machine Imports"
-    parent="ssi_timesheet.timesheet_menu"
-    action="attendance_machine_import_action"
-    groups="attendance_machine_import_viewer_group"
-    sequence="10"
-/>
+        id="attendance_machine_import_menu"
+        name="Attendance Machine Imports"
+        parent="ssi_timesheet.timesheet_menu"
+        action="attendance_machine_import_action"
+        groups="attendance_machine_import_viewer_group"
+        sequence="10"
+    />
 </odoo>

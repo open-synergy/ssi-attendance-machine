@@ -6,7 +6,10 @@
 <record id="attendance_machine_model_view_search" model="ir.ui.view">
     <field name="name">attendance_machine_model - search</field>
     <field name="model">attendance_machine_model</field>
-    <field name="inherit_id" ref="ssi_master_data_mixin.mixin_master_data_view_search" />
+    <field
+            name="inherit_id"
+            ref="ssi_master_data_mixin.mixin_master_data_view_search"
+        />
     <field name="mode">primary</field>
     <field name="arch" type="xml">
         <data />
@@ -40,11 +43,11 @@
 </record>
 
 <menuitem
-    id="attendance_machine_model_menu"
-    name="Attendance Machine Models"
-    parent="menu_attendance_machine_configuration"
-    action="attendance_machine_model_action"
-    groups="attendance_machine_model_group"
-    sequence="10"
-/>
+        id="attendance_machine_model_menu"
+        name="Attendance Machine Models"
+        parent="menu_attendance_machine_configuration"
+        action="attendance_machine_model_action"
+        groups="attendance_machine_model_group"
+        sequence="10"
+    />
 </odoo>

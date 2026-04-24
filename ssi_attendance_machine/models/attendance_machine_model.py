@@ -2,10 +2,10 @@
 # Copyright 2024 PT. Simetri Sinergi Indonesia
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
-from odoo import fields, models
+from odoo import models
 
 
-class AttendanceMachineModel(models.Model):
+class AttendanceMachineModel(models.Model):  # pylint: disable=too-few-public-methods
     """
     Represents a brand/model of an attendance machine device.
     Used as reference data for attendance machines.

@@ -5,7 +5,13 @@
 <odoo>
 <record id="attendance_machine_group" model="res.groups">
     <field name="name">Attendance Machine</field>
-    <field name="category_id" ref="ssi_hr.human_resource_configurator_module_category" />
-    <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]" />
+    <field
+            name="category_id"
+            ref="ssi_hr.human_resource_configurator_module_category"
+        />
+    <field
+            name="users"
+            eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"
+        />
 </record>
 </odoo>

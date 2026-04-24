@@ -5,7 +5,7 @@
 from odoo import fields, models
 
 
-class AttendanceMachine(models.Model):
+class AttendanceMachine(models.Model):  # pylint: disable=too-few-public-methods
     """
     Represents a physical attendance machine device.
     Contains the machine's model reference, CSV mapping configuration,

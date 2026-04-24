@@ -14,7 +14,7 @@ from odoo.exceptions import ValidationError
 from odoo.addons.ssi_decorator import ssi_decorator
 
 
-class AttendanceMachineImport(models.Model):
+class AttendanceMachineImport(models.Model):  # pylint: disable=too-few-public-methods
     """
     Transactional document for importing attendance data from a machine.
     Reads a CSV file, creates raw data lines, then processes them via
@@ -151,17 +151,20 @@ class AttendanceMachineImport(models.Model):
             )
             if duplicate:
                 raise ValidationError(
-                    _(
+                    _(  # pylint: disable=translation-positional-used
                         """
 Context: Uploading attendance file
 Document: %s
 Problem: This file has already been imported (see document: %s)
 Solution: Check the existing import or use a different file"""
                     )
-                    % (record.name or str(record.id), duplicate.name or str(duplicate.id))
+                    % (
+                        record.name or str(record.id),
+                        duplicate.name or str(duplicate.id),
+                    )
                 )
 
-    def action_load_data(self):
+    def action_load_data(self):  # pylint: disable=too-many-locals
         """
         Delete existing data lines, read the attendance file, and create
         one data line per row with the raw row data stored as JSON.
@@ -237,10 +240,8 @@ Solution: Check the existing import or use a different file"""
     def _01_process_attendance_data_on_queue_done(self):
         self.ensure_one()
         for data_line in self.data_ids:
-            description = "Process attendance import data line ID %s" % data_line.id
-            data_line.with_context(
-                job_batch=self.done_queue_job_batch_id
-            ).with_delay(
+            description = f"Process attendance import data line ID {data_line.id}"
+            data_line.with_context(job_batch=self.done_queue_job_batch_id).with_delay(
                 description=_(description)
             )._process_attendance()
 
@@ -248,10 +249,8 @@ Solution: Check the existing import or use a different file"""
     def _01_cancel_attendance_data_on_queue_cancel(self):
         self.ensure_one()
         for data_line in self.data_ids.filtered(lambda d: d.attendance_id):
-            description = "Cancel attendance import data line ID %s" % data_line.id
-            data_line.with_context(
-                job_batch=self.cancel_queue_job_batch_id
-            ).with_delay(
+            description = f"Cancel attendance import data line ID {data_line.id}"
+            data_line.with_context(job_batch=self.cancel_queue_job_batch_id).with_delay(
                 description=_(description)
             )._cancel_attendance()
 
@@ -263,7 +262,7 @@ Solution: Check the existing import or use a different file"""
 
     @api.model
     def _get_policy_field(self):
-        res = super(AttendanceMachineImport, self)._get_policy_field()
+        res = super()._get_policy_field()
         policy_field = [
             "confirm_ok",
             "approve_ok",

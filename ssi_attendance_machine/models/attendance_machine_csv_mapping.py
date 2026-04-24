@@ -6,7 +6,9 @@ from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
 
-class AttendanceMachineCsvMapping(models.Model):
+class AttendanceMachineCsvMapping(
+    models.Model
+):  # pylint: disable=too-few-public-methods
     """
     Defines the template algorithm for parsing attendance CSV files.
     Supports various file formats including single-row and separate-row

@@ -12,13 +12,16 @@
     <field name="python_code">result = True</field>
     <field name="validate_sequence" eval="1" />
 </record>
-<record id="attendance_machine_import_approval_template_detail" model="approval.template_detail">
+<record
+            id="attendance_machine_import_approval_template_detail"
+            model="approval.template_detail"
+        >
     <field name="template_id" ref="attendance_machine_import_approval_template" />
     <field name="approver_selection_method">use_group</field>
     <field
-        name="approver_group_ids"
-        eval="[(6,0,[ref('attendance_machine_import_validator_group')])]"
-    />
+                name="approver_group_ids"
+                eval="[(6,0,[ref('attendance_machine_import_validator_group')])]"
+            />
 </record>
 </data>
 </odoo>

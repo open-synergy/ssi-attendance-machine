@@ -5,7 +5,7 @@
 from odoo import fields, models
 
 
-class AttendanceMachineEmployee(models.Model):
+class AttendanceMachineEmployee(models.Model):  # pylint: disable=too-few-public-methods
     """
     Maps an employee to an attendance machine along with their machine-specific
     employee code used in the attendance file.
