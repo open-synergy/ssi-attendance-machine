@@ -764,13 +764,9 @@ msgstr ""
 
 #. module: ssi_attendance_machine
 #: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine__message_has_error
-#: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine__message_has_sms_error
 #: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine_csv_mapping__message_has_error
-#: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine_csv_mapping__message_has_sms_error
 #: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine_import__message_has_error
-#: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine_import__message_has_sms_error
 #: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine_model__message_has_error
-#: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine_model__message_has_sms_error
 msgid "If checked, some messages have a delivery error."
 msgstr ""
 
@@ -1127,14 +1123,6 @@ msgstr ""
 msgid ""
 "SHA-256 hash of the uploaded attendance file. Used to detect duplicate "
 "imports."
-msgstr ""
-
-#. module: ssi_attendance_machine
-#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine__message_has_sms_error
-#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_csv_mapping__message_has_sms_error
-#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import__message_has_sms_error
-#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_model__message_has_sms_error
-msgid "SMS Delivery error"
 msgstr ""
 
 #. module: ssi_attendance_machine
