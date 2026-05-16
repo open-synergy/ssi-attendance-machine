@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2024 OpenSynergy Indonesia
+     Copyright 2024 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+
+<!-- TREE VIEW -->
+<record id="attendance_machine_import_view_tree" model="ir.ui.view">
+    <field name="name">attendance_machine_import tree - operating unit</field>
+    <field name="model">attendance_machine_import</field>
+    <field
+            name="inherit_id"
+            ref="ssi_attendance_machine.attendance_machine_import_view_tree"
+        />
+    <field name="arch" type="xml">
+        <data>
+            <xpath expr="//field[@name='machine_id']" position="after">
+                <field
+                        name="operating_unit_id"
+                        groups="operating_unit.group_multi_operating_unit"
+                        optional="hide"
+                    />
+            </xpath>
+        </data>
+    </field>
+</record>
+
+<!-- SEARCH VIEW -->
+<record id="attendance_machine_import_view_search" model="ir.ui.view">
+    <field name="name">attendance_machine_import search - operating unit</field>
+    <field name="model">attendance_machine_import</field>
+    <field
+            name="inherit_id"
+            ref="ssi_attendance_machine.attendance_machine_import_view_search"
+        />
+    <field name="arch" type="xml">
+        <data>
+            <xpath expr="//search" position="inside">
+                <field
+                        name="operating_unit_id"
+                        groups="operating_unit.group_multi_operating_unit"
+                    />
+            </xpath>
+        </data>
+    </field>
+</record>
+
+<!-- FORM VIEW -->
+<record id="attendance_machine_import_view_form" model="ir.ui.view">
+    <field name="name">attendance_machine_import form - operating unit</field>
+    <field name="model">attendance_machine_import</field>
+    <field
+            name="inherit_id"
+            ref="ssi_attendance_machine.attendance_machine_import_view_form"
+        />
+    <field name="arch" type="xml">
+        <data>
+            <xpath expr="//field[@name='machine_id']" position="after">
+                <field
+                        name="operating_unit_id"
+                        groups="operating_unit.group_multi_operating_unit"
+                    />
+            </xpath>
+        </data>
+    </field>
+</record>
+
+</odoo>
