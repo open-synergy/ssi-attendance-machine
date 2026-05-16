@@ -1,0 +1,129 @@
+scenarios:
+  - name: "Attendance Machine - Master data creation"
+    steps:
+      - step: "Create attendance machine model"
+        action: "create"
+        model: "attendance_machine_model"
+        save_as: "machine_model"
+        values:
+          name: "Test Machine Model"
+          code: "TMM001"
+
+      - step: "Assert machine model created"
+        action: "assert"
+        target: "machine_model"
+        asserts:
+          name:
+            type: "value"
+            expected: "Test Machine Model"
+          code:
+            type: "value"
+            expected: "TMM001"
+          active:
+            type: "value"
+            expected: true
+
+      - step: "Create CSV mapping - single row combined"
+        action: "create"
+        model: "attendance_machine_csv_mapping"
+        save_as: "csv_mapping_single"
+        values:
+          name: "Test CSV Mapping Single Row"
+          code: "TCMS001"
+          file_encoding: "utf-8"
+          delimiter: "comma"
+          quotechar: '"'
+          no_header: false
+          row_mode: "single"
+          datetime_mode: "combined"
+          employee_column: "employee_id"
+          check_in_column: "check_in"
+          check_out_column: "check_out"
+          datetime_format: "%Y-%m-%d %H:%M:%S"
+
+      - step: "Assert CSV mapping created"
+        action: "assert"
+        target: "csv_mapping_single"
+        asserts:
+          name:
+            type: "value"
+            expected: "Test CSV Mapping Single Row"
+          row_mode:
+            type: "value"
+            expected: "single"
+          datetime_mode:
+            type: "value"
+            expected: "combined"
+
+      - step: "Create CSV mapping - separate rows"
+        action: "create"
+        model: "attendance_machine_csv_mapping"
+        save_as: "csv_mapping_separate"
+        values:
+          name: "Test CSV Mapping Separate Rows"
+          code: "TCMSR001"
+          file_encoding: "utf-8"
+          delimiter: "semicolon"
+          row_mode: "separate"
+          datetime_mode: "combined"
+          employee_column: "emp_code"
+          row_type_column: "type"
+          sign_in_value: "IN"
+          sign_out_value: "OUT"
+          datetime_column: "timestamp"
+          datetime_format: "%d/%m/%Y %H:%M"
+
+      - step: "Assert separate row mapping created"
+        action: "assert"
+        target: "csv_mapping_separate"
+        asserts:
+          row_mode:
+            type: "value"
+            expected: "separate"
+          delimiter:
+            type: "value"
+            expected: "semicolon"
+
+      - step: "Create employee"
+        action: "create"
+        model: "hr.employee"
+        save_as: "employee"
+        values:
+          name: "Test Employee AM"
+
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "Test Machine"
+          code: "TM001"
+          attendance_model_id: "EVAL: registry['machine_model'].id"
+          csv_mapping_id: "EVAL: registry['csv_mapping_single'].id"
+
+      - step: "Assert machine created"
+        action: "assert"
+        target: "machine"
+        asserts:
+          name:
+            type: "value"
+            expected: "Test Machine"
+          active:
+            type: "value"
+            expected: true
+
+      - step: "Add employee to machine"
+        action: "create"
+        model: "attendance_machine.employee"
+        save_as: "machine_employee"
+        values:
+          machine_id: "EVAL: registry['machine'].id"
+          employee_id: "EVAL: registry['employee'].id"
+
+      - step: "Assert machine employee created"
+        action: "assert"
+        target: "machine_employee"
+        asserts:
+          id:
+            type: "value"
+            operator: "is_truthy"
