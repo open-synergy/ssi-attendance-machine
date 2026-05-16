@@ -16,6 +16,6 @@
         "ssi_operating_unit_mixin",
     ],
     "data": [
-        "views/attendance_machine_views.xml",
+        "views/attendance_machine_import_views.xml",
     ],
 }

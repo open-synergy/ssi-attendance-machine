@@ -1,27 +1,35 @@
 scenarios:
-  - name: "Attendance Machine - Operating Unit: record has operating_unit_id"
+  - name: "Attendance Machine Import - Operating Unit: record has operating_unit_id"
     steps:
       - step: "Get default operating unit"
         action: "ref"
         xml_id: "operating_unit.main_operating_unit"
         save_as: "ou"
 
-      - step: "Create attendance machine with operating_unit_id"
+      - step: "Create attendance machine"
         action: "create"
         model: "attendance_machine"
         save_as: "machine"
         values:
-          name: "Test Machine OU"
-          code: "TM-OU-001"
+          name: "Test Machine OU Import"
+          code: "TM-OU-IMP-001"
+
+      - step: "Create attendance machine import with operating_unit_id"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2024-01-15"
+          machine_id: "EVAL: registry['machine'].id"
           operating_unit_id: "EVAL: registry['ou'].id"
 
       - step: "Assert operating_unit_id is set"
         action: "assert"
-        target: "machine"
+        target: "machine_import"
         asserts:
           operating_unit_id:
             type: "value"
             operator: "is_truthy"
-          name:
+          machine_id:
             type: "value"
-            expected: "Test Machine OU"
+            operator: "is_truthy"

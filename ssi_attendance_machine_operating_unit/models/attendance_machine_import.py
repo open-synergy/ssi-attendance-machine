@@ -5,9 +5,9 @@
 from odoo import models
 
 
-class AttendanceMachine(models.Model):  # pylint: disable=too-few-public-methods
-    _name = "attendance_machine"
+class AttendanceMachineImport(models.Model):  # pylint: disable=too-few-public-methods
+    _name = "attendance_machine_import"
     _inherit = [
-        "attendance_machine",
+        "attendance_machine_import",
         "mixin.single_operating_unit",
     ]

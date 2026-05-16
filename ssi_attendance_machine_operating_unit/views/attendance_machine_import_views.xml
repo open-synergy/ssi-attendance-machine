@@ -5,16 +5,16 @@
 <odoo>
 
 <!-- TREE VIEW -->
-<record id="attendance_machine_view_tree" model="ir.ui.view">
-    <field name="name">attendance_machine tree</field>
-    <field name="model">attendance_machine</field>
+<record id="attendance_machine_import_view_tree" model="ir.ui.view">
+    <field name="name">attendance_machine_import tree - operating unit</field>
+    <field name="model">attendance_machine_import</field>
     <field
             name="inherit_id"
-            ref="ssi_attendance_machine.attendance_machine_view_tree"
+            ref="ssi_attendance_machine.attendance_machine_import_view_tree"
         />
     <field name="arch" type="xml">
         <data>
-            <xpath expr="//field[@name='name']" position="after">
+            <xpath expr="//field[@name='machine_id']" position="after">
                 <field
                         name="operating_unit_id"
                         groups="operating_unit.group_multi_operating_unit"
@@ -26,16 +26,16 @@
 </record>
 
 <!-- SEARCH VIEW -->
-<record id="attendance_machine_view_search" model="ir.ui.view">
-    <field name="name">attendance_machine search</field>
-    <field name="model">attendance_machine</field>
+<record id="attendance_machine_import_view_search" model="ir.ui.view">
+    <field name="name">attendance_machine_import search - operating unit</field>
+    <field name="model">attendance_machine_import</field>
     <field
             name="inherit_id"
-            ref="ssi_attendance_machine.attendance_machine_view_search"
+            ref="ssi_attendance_machine.attendance_machine_import_view_search"
         />
     <field name="arch" type="xml">
         <data>
-            <xpath expr="//field[@name='name']" position="after">
+            <xpath expr="//search" position="inside">
                 <field
                         name="operating_unit_id"
                         groups="operating_unit.group_multi_operating_unit"
@@ -46,16 +46,16 @@
 </record>
 
 <!-- FORM VIEW -->
-<record id="attendance_machine_view_form" model="ir.ui.view">
-    <field name="name">attendance_machine form</field>
-    <field name="model">attendance_machine</field>
+<record id="attendance_machine_import_view_form" model="ir.ui.view">
+    <field name="name">attendance_machine_import form - operating unit</field>
+    <field name="model">attendance_machine_import</field>
     <field
             name="inherit_id"
-            ref="ssi_attendance_machine.attendance_machine_view_form"
+            ref="ssi_attendance_machine.attendance_machine_import_view_form"
         />
     <field name="arch" type="xml">
         <data>
-            <xpath expr="//field[@name='active']" position="after">
+            <xpath expr="//field[@name='machine_id']" position="after">
                 <field
                         name="operating_unit_id"
                         groups="operating_unit.group_multi_operating_unit"
