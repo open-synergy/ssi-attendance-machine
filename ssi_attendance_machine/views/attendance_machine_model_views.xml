@@ -12,7 +12,11 @@
         />
     <field name="mode">primary</field>
     <field name="arch" type="xml">
-        <data />
+        <data>
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="code" />
+            </xpath>
+        </data>
     </field>
 </record>
 
