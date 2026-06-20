@@ -558,6 +558,7 @@ msgstr ""
 
 #. module: ssi_attendance_machine
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import__date
+#: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_import_view_search
 msgid "Date"
 msgstr ""
 
@@ -725,6 +726,11 @@ msgid "Format Strings"
 msgstr ""
 
 #. module: ssi_attendance_machine
+#: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_import_view_search
+msgid "Group By"
+msgstr ""
+
+#. module: ssi_attendance_machine
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine__id
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_csv_mapping__id
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_employee__id
@@ -836,6 +842,7 @@ msgstr ""
 
 #. module: ssi_attendance_machine
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import__machine_id
+#: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_import_view_search
 msgid "Machine"
 msgstr ""
 
@@ -1269,6 +1276,11 @@ msgid "The timesheet attendance record created from this data line."
 msgstr ""
 
 #. module: ssi_attendance_machine
+#: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_import_view_search
+msgid "This Month"
+msgstr ""
+
+#. module: ssi_attendance_machine
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_csv_mapping__time_column
 msgid "Time Column"
 msgstr ""
@@ -1306,6 +1318,11 @@ msgstr ""
 #. module: ssi_attendance_machine
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import__done_queue_job_ids
 msgid "To Done Queue Jobs"
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_import_view_search
+msgid "Today"
 msgstr ""
 
 #. module: ssi_attendance_machine
