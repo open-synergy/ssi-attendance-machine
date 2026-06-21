@@ -92,8 +92,6 @@ class AttendanceMachineImport(models.Model):  # pylint: disable=too-few-public-m
     # Sequence attribute
     _create_sequence_state = "done"
 
-    _auto_enqueue_done = False
-
     date = fields.Date(
         string="Date",
         required=True,
