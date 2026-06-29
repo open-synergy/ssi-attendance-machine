@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2024 OpenSynergy Indonesia -->
+<!-- Copyright 2024 PT. Simetri Sinergi Indonesia -->
+<!-- License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+
+    <record id="attendance_machine_import_rule_ou" model="ir.rule">
+        <field
+            name="name"
+        >Attendance Machine Import - Responsible to operating unit data</field>
+        <field
+            name="model_id"
+            ref="ssi_attendance_machine.model_attendance_machine_import"
+        />
+        <field name="groups" eval="[(4, ref('attendance_machine_import_ou_group'))]" />
+        <field
+            name="domain_force"
+        >[('operating_unit_id','in',[g.id for g in user.operating_unit_ids])]</field>
+        <field name="perm_unlink" eval="1" />
+        <field name="perm_write" eval="1" />
+        <field name="perm_read" eval="1" />
+        <field name="perm_create" eval="1" />
+    </record>
+
+</odoo>
