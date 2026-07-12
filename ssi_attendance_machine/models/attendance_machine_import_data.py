@@ -473,18 +473,48 @@ Solution: Verify the check-in row was imported successfully for this
         for record in self.sudo():
             record._retry()
 
+    def action_open_ignore_wizard(self):
+        for record in self.sudo():
+            result = record._open_ignore_wizard()
+        return result
+
+    def action_open_edit_data_wizard(self):
+        for record in self.sudo():
+            result = record._open_edit_data_wizard()
+        return result
+
+    def _open_ignore_wizard(self):
+        self.ensure_one()
+        waction = self.env.ref(
+            "ssi_attendance_machine.attendance_machine_import_data_ignore_action"
+        ).read()[0]
+        waction.update({"context": {"default_data_id": self.id}})
+        return waction
+
+    def _open_edit_data_wizard(self):
+        self.ensure_one()
+        waction = self.env.ref(
+            "ssi_attendance_machine.attendance_machine_import_data_edit_action"
+        ).read()[0]
+        waction.update({"context": {"default_data_id": self.id}})
+        return waction
+
     def _ignore(self):
         self.ensure_one()
-        if self.state == "done":
+        if self.state not in ("draft", "error"):
             raise UserError(
                 _(
                     """
 Context: Ignoring attendance import data line
 Document: %s (sequence %s)
-Problem: This line has already been converted into an attendance record
-Solution: Only lines with an error can be ignored"""
+Problem: This line is in state '%s' and cannot be ignored
+Solution: Only lines in Draft or Error state can be ignored"""
                 )
-                % (self.import_id.name or str(self.import_id.id), self.sequence)
+                % (
+                    self.import_id.name or str(self.import_id.id),
+                    self.sequence,
+                    self.state,
+                )
             )
         if not self.ignore_reason:
             raise UserError(

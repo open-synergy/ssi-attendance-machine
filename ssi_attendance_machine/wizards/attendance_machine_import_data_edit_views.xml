@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2026 OpenSynergy Indonesia
+     Copyright 2026 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+<record id="attendance_machine_import_data_edit_view_form" model="ir.ui.view">
+    <field name="name">attendance_machine_import_data_edit - form</field>
+    <field name="model">attendance_machine_import_data_edit</field>
+    <field name="arch" type="xml">
+        <form>
+            <group name="group_1" colspan="4" col="2">
+                <field name="data_id" invisible="1" />
+                <field name="data" nolabel="1" colspan="2" />
+            </group>
+            <footer>
+                <button
+                        string="Confirm"
+                        name="action_confirm"
+                        type="object"
+                        class="oe_highlight"
+                    />
+                or
+                <button string="Cancel" class="oe_link" special="cancel" />
+            </footer>
+        </form>
+    </field>
+</record>
+
+<record id="attendance_machine_import_data_edit_action" model="ir.actions.act_window">
+    <field name="name">Edit Raw Data</field>
+    <field name="res_model">attendance_machine_import_data_edit</field>
+    <field name="view_mode">form</field>
+    <field name="view_id" ref="attendance_machine_import_data_edit_view_form" />
+    <field name="target">new</field>
+</record>
+</odoo>

@@ -485,3 +485,130 @@ scenarios:
           num_of_ignored:
             type: "value"
             expected: 1
+
+  - name: "Attendance Machine Import - Ignore individual line via wizard"
+    steps:
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "Data Ignore Wizard Test Machine"
+          code: "BL0129A1"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-07-12"
+          machine_id: "EVAL: registry['machine'].id"
+
+      - step: "Create error data line"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 1
+          state: "error"
+          error_message: "Sample error for ignore wizard test"
+
+      - step: "Create a second error data line that must stay untouched"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "other_data_line"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 2
+          state: "error"
+          error_message: "Another sample error"
+
+      - step: "Create ignore wizard for the first data line"
+        action: "create"
+        model: "attendance_machine_import_data_ignore"
+        save_as: "ignore_wizard"
+        values:
+          data_id: "EVAL: registry['data_line'].id"
+          reason: "Employee resigned"
+
+      - step: "Confirm ignore wizard"
+        action: "call"
+        target: "ignore_wizard"
+        method: "action_confirm"
+
+      - step: "Assert data line is ignored with reason"
+        action: "assert"
+        target: "data_line"
+        asserts:
+          state:
+            type: "value"
+            expected: "ignored"
+          ignore_reason:
+            type: "value"
+            expected: "Employee resigned"
+
+      - step: "Assert other data line is still error"
+        action: "assert"
+        target: "other_data_line"
+        asserts:
+          state:
+            type: "value"
+            expected: "error"
+
+  - name: "Attendance Machine Import - Edit raw data via wizard"
+    steps:
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "Data Edit Wizard Test Machine"
+          code: "BL0129A2"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-07-12"
+          machine_id: "EVAL: registry['machine'].id"
+
+      - step: "Create error data line with wrong raw data"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 1
+          state: "error"
+          error_message: "Sample error for edit wizard test"
+          data: '{"emp": "OLD"}'
+
+      - step: "Create edit wizard with corrected data"
+        action: "create"
+        model: "attendance_machine_import_data_edit"
+        save_as: "edit_wizard"
+        values:
+          data_id: "EVAL: registry['data_line'].id"
+          data: '{"emp": "NEW"}'
+
+      - step: "Confirm edit wizard"
+        action: "call"
+        target: "edit_wizard"
+        method: "action_confirm"
+
+      - step: "Assert data line back to draft with corrected data"
+        action: "assert"
+        target: "data_line"
+        asserts:
+          state:
+            type: "value"
+            expected: "draft"
+          error_message:
+            type: "value"
+            operator: "is_falsy"
+          data:
+            type: "value"
+            operator: "contains"
+            expected: "NEW"

@@ -1,0 +1,93 @@
+# Copyright 2026 OpenSynergy Indonesia
+# Copyright 2026 PT. Simetri Sinergi Indonesia
+# License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+
+import json
+
+from odoo import _, api, fields, models
+from odoo.exceptions import UserError
+
+
+class AttendanceMachineImportDataEdit(models.TransientModel):
+    """
+    Wizard to correct the raw JSON data of a single attendance machine
+    import data line, opened from the "Edit Data" button on the import
+    data line. Confirming sends the line back to draft so the user can
+    retry it manually.
+    """
+
+    _name = "attendance_machine_import_data_edit"
+    _description = "Attendance Machine Import Data - Edit Raw Data"
+
+    @api.model
+    def _default_data_id(self):
+        return self.env.context.get("active_id", False)
+
+    @api.model
+    def _default_data(self):
+        data_id = self._default_data_id()
+        if not data_id:
+            return False
+        return self.env["attendance_machine_import.data"].browse(data_id).data
+
+    data_id = fields.Many2one(
+        string="Data Line",
+        comodel_name="attendance_machine_import.data",
+        required=True,
+        default=lambda self: self._default_data_id(),
+        help="The import data line whose raw data will be corrected.",
+    )
+    data = fields.Text(
+        string="Data",
+        required=True,
+        default=lambda self: self._default_data(),
+        help="Raw row data to replace the current data line content with, "
+        "as a JSON object.",
+    )
+
+    def action_confirm(self):
+        for record in self.sudo():
+            record._confirm()
+
+    def _confirm(self):
+        self.ensure_one()
+        if self.data_id.state not in ("draft", "error"):
+            raise UserError(
+                _(
+                    """
+Context: Editing attendance import data line raw data
+Document: %s (sequence %s)
+Problem: This line is in state '%s' and cannot have its raw data edited
+Solution: Only lines in Draft or Error state can be edited"""
+                )
+                % (
+                    self.data_id.import_id.name or str(self.data_id.import_id.id),
+                    self.data_id.sequence,
+                    self.data_id.state,
+                )
+            )
+        try:
+            parsed = json.loads(self.data)
+        except (ValueError, TypeError):
+            parsed = None
+        if not isinstance(parsed, dict):
+            raise UserError(
+                _(
+                    """
+Context: Editing attendance import data line raw data
+Document: %s (sequence %s)
+Problem: Data is not a valid JSON object
+Solution: Correct the data so that it is a valid JSON object, then confirm again"""
+                )
+                % (
+                    self.data_id.import_id.name or str(self.data_id.import_id.id),
+                    self.data_id.sequence,
+                )
+            )
+        self.data_id.write(
+            {
+                "data": json.dumps(parsed),
+                "state": "draft",
+                "error_message": False,
+            }
+        )
