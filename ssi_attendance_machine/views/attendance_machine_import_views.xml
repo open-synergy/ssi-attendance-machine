@@ -114,7 +114,7 @@
                         <field name="num_of_ignored" />
                     </group>
                     <field name="data_ids">
-                        <tree>
+                        <tree create="false" edit="false" delete="false">
                             <field name="sequence" />
                             <field name="data" widget="json_viewer" />
                             <field name="employee_id" />
@@ -133,27 +133,34 @@
                                     string="Retry"
                                     type="object"
                                     icon="fa-refresh"
-                                    attrs="{'invisible': [('state','!=','error')]}"
+                                    attrs="{'invisible': [('state','not in',('draft','error'))]}"
                                 />
                             <button
-                                    name="action_ignore"
+                                    name="action_open_ignore_wizard"
                                     string="Ignore"
                                     type="object"
                                     icon="fa-ban"
-                                    attrs="{'invisible': [('state','!=','error')]}"
+                                    attrs="{'invisible': [('state','not in',('draft','error'))]}"
+                                />
+                            <button
+                                    name="action_open_edit_data_wizard"
+                                    string="Edit Data"
+                                    type="object"
+                                    icon="fa-pencil"
+                                    attrs="{'invisible': [('state','not in',('draft','error'))]}"
                                 />
                         </tree>
                         <form>
                             <group>
                                 <group>
-                                    <field name="sequence" />
-                                    <field name="employee_id" />
-                                    <field name="attendance_id" />
-                                    <field name="state" widget="badge" />
+                                    <field name="sequence" readonly="1" />
+                                    <field name="employee_id" readonly="1" />
+                                    <field name="attendance_id" readonly="1" />
+                                    <field name="state" widget="badge" readonly="1" />
                                 </group>
                                 <group>
                                     <field name="error_message" readonly="1" />
-                                    <field name="ignore_reason" />
+                                    <field name="ignore_reason" readonly="1" />
                                 </group>
                             </group>
                             <group string="Data">
@@ -162,6 +169,7 @@
                                         widget="json_viewer"
                                         nolabel="1"
                                         colspan="2"
+                                        readonly="1"
                                     />
                             </group>
                         </form>

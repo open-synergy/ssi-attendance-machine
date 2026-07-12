@@ -131,7 +131,6 @@ class AttendanceMachineImport(models.Model):  # pylint: disable=too-few-public-m
         comodel_name="attendance_machine_import.data",
         inverse_name="import_id",
         readonly=True,
-        states={"queue_done": [("readonly", False)]},
     )
     num_of_data = fields.Integer(
         string="# Data",
