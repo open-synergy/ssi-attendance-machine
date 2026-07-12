@@ -14,6 +14,28 @@ msgstr ""
 "Plural-Forms: \n"
 
 #. module: ssi_attendance_machine
+#: code:addons/ssi_attendance_machine/wizards/attendance_machine_import_data_edit.py:0
+#, python-format
+msgid ""
+"\n"
+"Context: Editing attendance import data line raw data\n"
+"Document: %s (sequence %s)\n"
+"Problem: Data is not a valid JSON object\n"
+"Solution: Correct the data so that it is a valid JSON object, then confirm again"
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: code:addons/ssi_attendance_machine/wizards/attendance_machine_import_data_edit.py:0
+#, python-format
+msgid ""
+"\n"
+"Context: Editing attendance import data line raw data\n"
+"Document: %s (sequence %s)\n"
+"Problem: This line is in state '%s' and cannot have its raw data edited\n"
+"Solution: Only lines in Draft or Error state can be edited"
+msgstr ""
+
+#. module: ssi_attendance_machine
 #: code:addons/ssi_attendance_machine/models/attendance_machine_import_data.py:0
 #, python-format
 msgid ""
@@ -31,8 +53,8 @@ msgid ""
 "\n"
 "Context: Ignoring attendance import data line\n"
 "Document: %s (sequence %s)\n"
-"Problem: This line has already been converted into an attendance record\n"
-"Solution: Only lines with an error can be ignored"
+"Problem: This line is in state '%s' and cannot be ignored\n"
+"Solution: Only lines in Draft or Error state can be ignored"
 msgstr ""
 
 #. module: ssi_attendance_machine
@@ -331,6 +353,16 @@ msgid "Attendance Machine Import - Data"
 msgstr ""
 
 #. module: ssi_attendance_machine
+#: model:ir.model,name:ssi_attendance_machine.model_attendance_machine_import_data_edit
+msgid "Attendance Machine Import Data - Edit Raw Data"
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: model:ir.model,name:ssi_attendance_machine.model_attendance_machine_import_data_ignore
+msgid "Attendance Machine Import Data - Ignore"
+msgstr ""
+
+#. module: ssi_attendance_machine
 #: model:ir.actions.act_window,name:ssi_attendance_machine.attendance_machine_import_action
 #: model:ir.ui.menu,name:ssi_attendance_machine.attendance_machine_import_menu
 msgid "Attendance Machine Imports"
@@ -416,6 +448,8 @@ msgid "Can Start Finished Queue"
 msgstr ""
 
 #. module: ssi_attendance_machine
+#: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_import_data_edit_view_form
+#: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_import_data_ignore_view_form
 #: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_import_ignore_view_form
 msgid "Cancel"
 msgstr ""
@@ -611,6 +645,8 @@ msgid "Configuration"
 msgstr ""
 
 #. module: ssi_attendance_machine
+#: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_import_data_edit_view_form
+#: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_import_data_ignore_view_form
 #: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_import_ignore_view_form
 msgid "Confirm"
 msgstr ""
@@ -629,6 +665,8 @@ msgstr ""
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_employee__create_uid
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import__create_uid
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data__create_uid
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data_edit__create_uid
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data_ignore__create_uid
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_ignore__create_uid
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_model__create_uid
 msgid "Created by"
@@ -640,6 +678,8 @@ msgstr ""
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_employee__create_date
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import__create_date
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data__create_date
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data_edit__create_date
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data_ignore__create_date
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_ignore__create_date
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_model__create_date
 msgid "Created on"
@@ -647,8 +687,15 @@ msgstr ""
 
 #. module: ssi_attendance_machine
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data__data
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data_edit__data
 #: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_import_view_form
 msgid "Data"
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data_edit__data_id
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data_ignore__data_id
+msgid "Data Line"
 msgstr ""
 
 #. module: ssi_attendance_machine
@@ -709,6 +756,8 @@ msgstr ""
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_employee__display_name
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import__display_name
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data__display_name
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data_edit__display_name
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data_ignore__display_name
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_ignore__display_name
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_model__display_name
 msgid "Display Name"
@@ -735,6 +784,16 @@ msgstr ""
 #. module: ssi_attendance_machine
 #: model:ir.model.fields.selection,name:ssi_attendance_machine.selection__attendance_machine_import_data__state__draft
 msgid "Draft"
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_import_view_form
+msgid "Edit Data"
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: model:ir.actions.act_window,name:ssi_attendance_machine.attendance_machine_import_data_edit_action
+msgid "Edit Raw Data"
 msgstr ""
 
 #. module: ssi_attendance_machine
@@ -852,6 +911,8 @@ msgstr ""
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_employee__id
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import__id
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data__id
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data_edit__id
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data_ignore__id
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_ignore__id
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_model__id
 msgid "ID"
@@ -905,6 +966,11 @@ msgid "Ignore All Errors"
 msgstr ""
 
 #. module: ssi_attendance_machine
+#: model:ir.actions.act_window,name:ssi_attendance_machine.attendance_machine_import_data_ignore_action
+msgid "Ignore Data Line"
+msgstr ""
+
+#. module: ssi_attendance_machine
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data__ignore_reason
 msgid "Ignore Reason"
 msgstr ""
@@ -939,6 +1005,8 @@ msgstr ""
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_employee____last_update
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import____last_update
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data____last_update
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data_edit____last_update
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data_ignore____last_update
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_ignore____last_update
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_model____last_update
 msgid "Last Modified on"
@@ -950,6 +1018,8 @@ msgstr ""
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_employee__write_uid
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import__write_uid
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data__write_uid
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data_edit__write_uid
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data_ignore__write_uid
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_ignore__write_uid
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_model__write_uid
 msgid "Last Updated by"
@@ -961,6 +1031,8 @@ msgstr ""
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_employee__write_date
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import__write_date
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data__write_date
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data_edit__write_date
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data_ignore__write_date
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_ignore__write_date
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_model__write_date
 msgid "Last Updated on"
@@ -1233,6 +1305,14 @@ msgid "Raw row data from the attendance file, stored as a JSON object."
 msgstr ""
 
 #. module: ssi_attendance_machine
+#: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine_import_data_edit__data
+msgid ""
+"Raw row data to replace the current data line content with, as a JSON "
+"object."
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data_ignore__reason
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_ignore__reason
 msgid "Reason"
 msgstr ""
@@ -1251,6 +1331,11 @@ msgstr ""
 #. module: ssi_attendance_machine
 #: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine_import_data__ignore_reason
 msgid "Reason why this data line is excluded from the import."
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine_import_data_ignore__reason
+msgid "Reason why this data line is ignored."
 msgstr ""
 
 #. module: ssi_attendance_machine
@@ -1476,6 +1561,16 @@ msgid "The employee record in Odoo."
 msgstr ""
 
 #. module: ssi_attendance_machine
+#: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine_import_data_ignore__data_id
+msgid "The import data line that will be ignored."
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine_import_data_edit__data_id
+msgid "The import data line whose raw data will be corrected."
+msgstr ""
+
+#. module: ssi_attendance_machine
 #: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine_import_data__import_id
 msgid "The import document this line belongs to."
 msgstr ""
@@ -1680,6 +1775,8 @@ msgid "comma (,)"
 msgstr ""
 
 #. module: ssi_attendance_machine
+#: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_import_data_edit_view_form
+#: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_import_data_ignore_view_form
 #: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_import_ignore_view_form
 msgid "or"
 msgstr ""
