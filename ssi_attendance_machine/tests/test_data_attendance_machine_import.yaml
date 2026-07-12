@@ -71,3 +71,417 @@ scenarios:
           state:
             type: "value"
             expected: "confirm"
+
+  - name: "Attendance Machine Import - Line error on unregistered employee"
+    steps:
+      - step: "Create machine model"
+        action: "create"
+        model: "attendance_machine_model"
+        save_as: "machine_model"
+        values:
+          name: "Error Line Test Model"
+          code: "BL0127M1"
+
+      - step: "Create CSV mapping"
+        action: "create"
+        model: "attendance_machine_csv_mapping"
+        save_as: "csv_mapping"
+        values:
+          name: "Error Line Test CSV Mapping"
+          code: "BL0127C1"
+          file_encoding: "utf-8"
+          delimiter: "comma"
+          row_mode: "single"
+          datetime_mode: "combined"
+          employee_column: "employee_id"
+          check_in_column: "check_in"
+          check_out_column: "check_out"
+          datetime_format: "%Y-%m-%d %H:%M:%S"
+
+      - step: "Create attendance machine without registered employees"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "Error Line Test Machine"
+          code: "BL0127A1"
+          attendance_model_id: "EVAL: registry['machine_model'].id"
+          csv_mapping_id: "EVAL: registry['csv_mapping'].id"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2024-01-15"
+          machine_id: "EVAL: registry['machine'].id"
+
+      - step: "Create data line with unregistered employee code"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 1
+          data:
+            '{"employee_id": "UNKNOWN001", "check_in": "2024-01-15 08:00:00",
+            "check_out": "2024-01-15 17:00:00"}'
+
+      - step: "Process attendance data line directly"
+        action: "call"
+        target: "data_line"
+        method: "_process_attendance"
+
+      - step: "Assert data line is in error state"
+        action: "assert"
+        target: "data_line"
+        asserts:
+          state:
+            type: "value"
+            expected: "error"
+          error_message:
+            type: "value"
+            operator: "is_truthy"
+          attendance_id:
+            type: "value"
+            operator: "is_falsy"
+
+  - name: "Attendance Machine Import - Ignore line with reason"
+    steps:
+      - step: "Create machine model"
+        action: "create"
+        model: "attendance_machine_model"
+        save_as: "machine_model"
+        values:
+          name: "Ignore Line Test Model"
+          code: "BL0127M2"
+
+      - step: "Create CSV mapping"
+        action: "create"
+        model: "attendance_machine_csv_mapping"
+        save_as: "csv_mapping"
+        values:
+          name: "Ignore Line Test CSV Mapping"
+          code: "BL0127C2"
+          file_encoding: "utf-8"
+          delimiter: "comma"
+          row_mode: "single"
+          datetime_mode: "combined"
+          employee_column: "employee_id"
+          check_in_column: "check_in"
+          check_out_column: "check_out"
+          datetime_format: "%Y-%m-%d %H:%M:%S"
+
+      - step: "Create attendance machine without registered employees"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "Ignore Line Test Machine"
+          code: "BL0127A2"
+          attendance_model_id: "EVAL: registry['machine_model'].id"
+          csv_mapping_id: "EVAL: registry['csv_mapping'].id"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2024-01-16"
+          machine_id: "EVAL: registry['machine'].id"
+
+      - step: "Create data line with unregistered employee code"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 1
+          data:
+            '{"employee_id": "UNKNOWN002", "check_in": "2024-01-16 08:00:00",
+            "check_out": "2024-01-16 17:00:00"}'
+
+      - step: "Process attendance data line directly"
+        action: "call"
+        target: "data_line"
+        method: "_process_attendance"
+
+      - step: "Assert data line is in error state"
+        action: "assert"
+        target: "data_line"
+        asserts:
+          state:
+            type: "value"
+            expected: "error"
+
+      - step: "Fill in ignore reason"
+        action: "write"
+        target: "data_line"
+        values:
+          ignore_reason: "Employee is no longer active, safe to ignore this row"
+
+      - step: "Ignore the error line"
+        action: "call"
+        target: "data_line"
+        method: "action_ignore"
+        asserts:
+          state:
+            type: "value"
+            expected: "ignored"
+
+  - name: "Attendance Machine Import - Retry resolves error line"
+    steps:
+      - step: "Create machine model"
+        action: "create"
+        model: "attendance_machine_model"
+        save_as: "machine_model"
+        values:
+          name: "Retry Line Test Model"
+          code: "BL0127M3"
+
+      - step: "Create CSV mapping"
+        action: "create"
+        model: "attendance_machine_csv_mapping"
+        save_as: "csv_mapping"
+        values:
+          name: "Retry Line Test CSV Mapping"
+          code: "BL0127C3"
+          file_encoding: "utf-8"
+          delimiter: "comma"
+          row_mode: "single"
+          datetime_mode: "combined"
+          employee_column: "employee_id"
+          check_in_column: "check_in"
+          check_out_column: "check_out"
+          datetime_format: "%Y-%m-%d %H:%M:%S"
+
+      - step: "Create attendance machine without registered employees"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "Retry Line Test Machine"
+          code: "BL0127A3"
+          attendance_model_id: "EVAL: registry['machine_model'].id"
+          csv_mapping_id: "EVAL: registry['csv_mapping'].id"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2024-01-20"
+          machine_id: "EVAL: registry['machine'].id"
+
+      - step: "Create data line before employee is registered"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 1
+          data:
+            '{"employee_id": "EMP003", "check_in": "2024-01-20 08:00:00", "check_out":
+            "2024-01-20 17:00:00"}'
+
+      - step: "Process attendance data line directly, expect error"
+        action: "call"
+        target: "data_line"
+        method: "_process_attendance"
+
+      - step: "Assert data line is in error state"
+        action: "assert"
+        target: "data_line"
+        asserts:
+          state:
+            type: "value"
+            expected: "error"
+
+      - step: "Create employee"
+        action: "create"
+        model: "hr.employee"
+        save_as: "employee"
+        values:
+          name: "Test Employee Retry"
+
+      - step: "Register employee code on the machine"
+        action: "create"
+        model: "attendance_machine.employee"
+        save_as: "machine_employee"
+        values:
+          machine_id: "EVAL: registry['machine'].id"
+          employee_id: "EVAL: registry['employee'].id"
+          employee_code: "EMP003"
+
+      - step: "Get working schedule"
+        action: "search"
+        model: "resource.calendar"
+        domain: []
+        save_as: "working_schedule"
+        limit: 1
+        order: "id asc"
+
+      - step: "Create timesheet (draft)"
+        action: "create"
+        model: "hr.timesheet"
+        save_as: "timesheet"
+        as_user: "base.user_admin"
+        values:
+          employee_id: "EVAL: registry['employee'].id"
+          date_start: 2024-01-01
+          date_end: 2024-01-31
+          working_schedule_id: "EVAL: registry['working_schedule'].id"
+
+      - step: "Open timesheet"
+        action: "call"
+        target: "timesheet"
+        method: "action_open"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+
+      - step: "Retry the error line"
+        action: "call"
+        target: "data_line"
+        method: "action_retry"
+
+      - step: "Assert data line resolved to done"
+        action: "assert"
+        target: "data_line"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+          attendance_id:
+            type: "value"
+            operator: "is_truthy"
+
+  - name: "Attendance Machine Import - Auto done when all lines resolved"
+    steps:
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "Auto Done Test Machine"
+          code: "BL0127A4"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2024-01-25"
+          machine_id: "EVAL: registry['machine'].id"
+
+      - step: "Force import into Queue To Done state"
+        action: "write"
+        target: "machine_import"
+        values:
+          state: "queue_done"
+
+      - step: "Create a resolved (done) data line"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_done"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 1
+          state: "done"
+
+      - step: "Create an ignored data line"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_ignored"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 2
+          state: "ignored"
+          ignore_reason: "Duplicated row, safe to ignore"
+
+      - step: "Try to auto-complete the import document"
+        action: "call"
+        target: "machine_import"
+        method: "_try_action_done"
+
+      - step: "Assert import document is done"
+        action: "assert"
+        target: "machine_import"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+
+  - name: "Attendance Machine Import - Data line counters"
+    steps:
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "Counter Test Machine"
+          code: "BL0127A5"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2024-01-26"
+          machine_id: "EVAL: registry['machine'].id"
+
+      - step: "Create draft data line"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_draft"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 1
+
+      - step: "Create done data line"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_done"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 2
+          state: "done"
+
+      - step: "Create error data line"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_error"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 3
+          state: "error"
+          error_message: "Sample error"
+
+      - step: "Create ignored data line"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_ignored"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 4
+          state: "ignored"
+          ignore_reason: "Sample ignore reason"
+
+      - step: "Assert counters"
+        action: "assert"
+        target: "machine_import"
+        asserts:
+          num_of_data:
+            type: "value"
+            expected: 4
+          num_of_done:
+            type: "value"
+            expected: 1
+          num_of_error:
+            type: "value"
+            expected: 1
+          num_of_ignored:
+            type: "value"
+            expected: 1

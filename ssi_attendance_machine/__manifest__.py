@@ -41,6 +41,7 @@
         "security/ir_model_access/attendance_machine_employee.xml",
         "security/ir_model_access/attendance_machine_import.xml",
         "security/ir_model_access/attendance_machine_import_data.xml",
+        "security/ir_model_access/attendance_machine_import_ignore.xml",
         # Security - rules
         "security/ir_rule/attendance_machine_import.xml",
         # Sequences
@@ -53,6 +54,8 @@
         "data/base_automation_data.xml",
         # Menu
         "menu.xml",
+        # Wizards
+        "wizards/attendance_machine_import_ignore_views.xml",
         # Views
         "views/attendance_machine_model_views.xml",
         "views/attendance_machine_csv_mapping_views.xml",

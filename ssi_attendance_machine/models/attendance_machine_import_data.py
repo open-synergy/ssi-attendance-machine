@@ -11,9 +11,7 @@ from odoo import _, fields, models
 from odoo.exceptions import UserError
 
 
-class AttendanceMachineImportData(
-    models.Model
-):  # pylint: disable=too-few-public-methods
+class AttendanceMachineImportData(models.Model):
     """
     One line per row in the attendance file. Stores the raw JSON row data
     and tracks the resulting hr.timesheet_attendance record created from it.
@@ -52,6 +50,40 @@ class AttendanceMachineImportData(
         related="attendance_id.sheet_id.employee_id",
         store=True,
         help="Employee derived from the linked attendance record's timesheet.",
+    )
+    state = fields.Selection(
+        string="Status",
+        selection=[
+            ("draft", "Draft"),
+            ("done", "Done"),
+            ("error", "Error"),
+            ("ignored", "Ignored"),
+        ],
+        default="draft",
+        required=True,
+        readonly=True,
+        copy=False,
+        help="Processing status of this data line.",
+    )
+    error_message = fields.Text(
+        string="Error Message",
+        readonly=True,
+        copy=False,
+        help="Reason why this data line failed to be converted into an "
+        "attendance record.",
+    )
+    ignore_reason = fields.Text(
+        string="Ignore Reason",
+        copy=False,
+        help="Reason why this data line is excluded from the import.",
+    )
+    queue_job_id = fields.Many2one(
+        string="Queue Job",
+        comodel_name="queue.job",
+        readonly=True,
+        ondelete="set null",
+        copy=False,
+        help="Queue job that processes this data line.",
     )
 
     # -------------------------------------------------------------------------
@@ -182,7 +214,27 @@ class AttendanceMachineImportData(
     # Queue job methods
     # -------------------------------------------------------------------------
 
-    def _process_attendance(  # noqa: C901
+    def _process_attendance(self):
+        """
+        Entry point called by the queue job. Runs the actual conversion
+        inside a savepoint so that any partially created attendance record is
+        rolled back on failure. Failures never raise out of the job: they are
+        recorded on the line as state='error' instead, so the queue job
+        itself always ends up 'done'.
+        """
+        self.ensure_one()
+        if self.state in ("done", "ignored"):
+            return True
+        try:
+            with self.env.cr.savepoint():
+                self._run_process_attendance()
+        except Exception as error:  # pylint: disable=broad-except
+            self.write({"state": "error", "error_message": str(error)})
+            return True
+        self.write({"state": "done", "error_message": False})
+        return True
+
+    def _run_process_attendance(  # noqa: C901
         self,
     ):  # pylint: disable=R0914,R0912,R0915,W8120
         """
@@ -195,11 +247,29 @@ class AttendanceMachineImportData(
             return
         mapping = self._get_mapping()
         if not mapping:
-            return
+            raise UserError(
+                _(
+                    """
+Context: Processing attendance import data line
+Document: %s (sequence %s)
+Problem: No CSV mapping is configured on the attendance machine
+Solution: Configure a CSV mapping on the attendance machine, then retry the queue job"""
+                )
+                % (self.import_id.name or str(self.import_id.id), self.sequence)
+            )
 
         row = self._get_row_data()
         if not row:
-            return
+            raise UserError(
+                _(
+                    """
+Context: Processing attendance import data line
+Document: %s (sequence %s)
+Problem: Row data is empty or not valid JSON
+Solution: Reload the import data from the source file, then retry the queue job"""
+                )
+                % (self.import_id.name or str(self.import_id.id), self.sequence)
+            )
 
         employee_code = str(row.get(mapping.employee_column or "", "")).strip()
         employee = self._find_employee(employee_code)
@@ -362,6 +432,24 @@ Solution: Create or open a timesheet for this employee covering the date,
                 if existing:
                     existing.check_out = dt_utc
                     self.attendance_id = existing.id
+                else:
+                    raise UserError(
+                        _(
+                            """
+Context: Processing attendance import data line
+Document: %s (sequence %s)
+Problem: No open check-in attendance found for employee '%s' on date %s to
+         match this sign-out row
+Solution: Verify the check-in row was imported successfully for this
+          employee and date, then retry the queue job"""
+                        )
+                        % (
+                            self.import_id.name or str(self.import_id.id),
+                            self.sequence,
+                            employee.name,
+                            att_date,
+                        )
+                    )
 
     def _cancel_attendance(self):
         """
@@ -372,3 +460,54 @@ Solution: Create or open a timesheet for this employee covering the date,
             att = self.attendance_id
             self.attendance_id = False
             att.unlink()
+
+    # -------------------------------------------------------------------------
+    # Action methods
+    # -------------------------------------------------------------------------
+
+    def action_ignore(self):
+        for record in self.sudo():
+            record._ignore()
+
+    def action_retry(self):
+        for record in self.sudo():
+            record._retry()
+
+    def _ignore(self):
+        self.ensure_one()
+        if self.state == "done":
+            raise UserError(
+                _(
+                    """
+Context: Ignoring attendance import data line
+Document: %s (sequence %s)
+Problem: This line has already been converted into an attendance record
+Solution: Only lines with an error can be ignored"""
+                )
+                % (self.import_id.name or str(self.import_id.id), self.sequence)
+            )
+        if not self.ignore_reason:
+            raise UserError(
+                _(
+                    """
+Context: Ignoring attendance import data line
+Document: %s (sequence %s)
+Problem: Ignore reason is empty
+Solution: Fill in the ignore reason before ignoring this line"""
+                )
+                % (self.import_id.name or str(self.import_id.id), self.sequence)
+            )
+        self.write({"state": "ignored"})
+        self._force_queue_job_done()
+        self.import_id._try_action_done()
+
+    def _retry(self):
+        self.ensure_one()
+        self.write({"state": "draft", "error_message": False})
+        self._process_attendance()
+        self.import_id._try_action_done()
+
+    def _force_queue_job_done(self):
+        self.ensure_one()
+        if self.queue_job_id and self.queue_job_id.state != "done":
+            self.queue_job_id.button_done()
