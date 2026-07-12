@@ -81,20 +81,67 @@
             </xpath>
             <xpath expr="//page[1]" position="before">
                 <page name="import_data" string="Import Data">
-                    <button
-                            name="action_load_data"
-                            string="Load Data"
-                            type="object"
-                            class="oe_highlight"
-                            icon="fa-upload"
-                            attrs="{'invisible':[('state','!=','draft')]}"
-                        />
+                    <div>
+                        <button
+                                name="action_load_data"
+                                string="Load Data"
+                                type="object"
+                                class="oe_highlight"
+                                icon="fa-upload"
+                                attrs="{'invisible':[('state','!=','draft')]}"
+                            />
+                        <button
+                                name="action_retry_all_error"
+                                string="Retry All Errors"
+                                type="object"
+                                class="btn-secondary ml-2"
+                                icon="fa-refresh"
+                                attrs="{'invisible':[('state','!=','queue_done')]}"
+                            />
+                        <button
+                                name="%(attendance_machine_import_ignore_action)d"
+                                string="Ignore All Errors"
+                                type="action"
+                                class="btn-secondary ml-2"
+                                icon="fa-ban"
+                                attrs="{'invisible':[('state','!=','queue_done')]}"
+                            />
+                    </div>
+                    <group name="import_data_counter" col="4">
+                        <field name="num_of_data" />
+                        <field name="num_of_done" />
+                        <field name="num_of_error" />
+                        <field name="num_of_ignored" />
+                    </group>
                     <field name="data_ids">
                         <tree>
                             <field name="sequence" />
                             <field name="data" widget="json_viewer" />
                             <field name="employee_id" />
                             <field name="attendance_id" />
+                            <field
+                                    name="state"
+                                    widget="badge"
+                                    decoration-danger="state=='error'"
+                                    decoration-success="state=='done'"
+                                    decoration-muted="state=='ignored'"
+                                />
+                            <field name="error_message" />
+                            <field name="ignore_reason" />
+                            <button
+                                    name="action_retry"
+                                    string="Retry"
+                                    type="object"
+                                    icon="fa-refresh"
+                                    attrs="{'invisible': [('state','!=','error')]}"
+                                />
+                            <button
+                                    name="action_ignore"
+                                    string="Ignore"
+                                    type="object"
+                                    icon="fa-ban"
+                                    attrs="{'invisible': [('state','!=','error')]}"
+                                />
                         </tree>
                         <form>
                             <group>
@@ -102,6 +149,11 @@
                                     <field name="sequence" />
                                     <field name="employee_id" />
                                     <field name="attendance_id" />
+                                    <field name="state" widget="badge" />
+                                </group>
+                                <group>
+                                    <field name="error_message" readonly="1" />
+                                    <field name="ignore_reason" />
                                 </group>
                             </group>
                             <group string="Data">

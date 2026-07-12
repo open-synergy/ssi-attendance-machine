@@ -133,6 +133,46 @@ class AttendanceMachineImport(models.Model):  # pylint: disable=too-few-public-m
         readonly=True,
         states={"queue_done": [("readonly", False)]},
     )
+    num_of_data = fields.Integer(
+        string="# Data",
+        compute="_compute_num_of_data",
+        compute_sudo=True,
+        help="Total number of import data lines.",
+    )
+    num_of_done = fields.Integer(
+        string="# Done",
+        compute="_compute_num_of_data",
+        compute_sudo=True,
+        help="Number of import data lines successfully converted into "
+        "attendance records.",
+    )
+    num_of_error = fields.Integer(
+        string="# Error",
+        compute="_compute_num_of_data",
+        compute_sudo=True,
+        help="Number of import data lines that failed to be converted "
+        "into attendance records.",
+    )
+    num_of_ignored = fields.Integer(
+        string="# Ignored",
+        compute="_compute_num_of_data",
+        compute_sudo=True,
+        help="Number of import data lines excluded from the import.",
+    )
+
+    @api.depends("data_ids.state")
+    def _compute_num_of_data(self):
+        for record in self:
+            record.num_of_data = len(record.data_ids)
+            record.num_of_done = len(
+                record.data_ids.filtered(lambda d: d.state == "done")
+            )
+            record.num_of_error = len(
+                record.data_ids.filtered(lambda d: d.state == "error")
+            )
+            record.num_of_ignored = len(
+                record.data_ids.filtered(lambda d: d.state == "ignored")
+            )
 
     @api.constrains("attendance_file_hash")
     def _check_duplicate_file(self):
@@ -239,9 +279,12 @@ Solution: Check the existing import or use a different file"""
         self.ensure_one()
         for data_line in self.data_ids:
             description = f"Process attendance import data line ID {data_line.id}"
-            data_line.with_context(job_batch=self.done_queue_job_batch_id).with_delay(
-                description=_(description)
-            )._process_attendance()
+            job = (
+                data_line.with_context(job_batch=self.done_queue_job_batch_id)
+                .with_delay(description=_(description))
+                ._process_attendance()
+            )
+            data_line.queue_job_id = job.db_record().id
 
     @ssi_decorator.post_queue_cancel_action()
     def _01_cancel_attendance_data_on_queue_cancel(self):
@@ -251,6 +294,39 @@ Solution: Check the existing import or use a different file"""
             data_line.with_context(job_batch=self.cancel_queue_job_batch_id).with_delay(
                 description=_(description)
             )._cancel_attendance()
+
+    def action_retry_all_error(self):
+        for record in self.sudo():
+            record._retry_all_error()
+
+    def _retry_all_error(self):
+        self.ensure_one()
+        for data_line in self._get_error_data():
+            data_line.action_retry()
+
+    def _get_error_data(self):
+        self.ensure_one()
+        return self.data_ids.filtered(lambda d: d.state == "error")
+
+    def _recompute_queue_done_result(self):
+        self.ensure_one()
+        self.done_queue_job_batch_id.enqueue()
+        batch_finished = self.done_queue_job_batch_state == "finished"
+        if batch_finished and not self._get_error_data():
+            self.action_done()
+
+    def _try_action_done(self):
+        self.ensure_one()
+        if self.state != "queue_done":
+            return True
+        if self._get_error_data():
+            return True
+        batch = self.done_queue_job_batch_id
+        if batch:
+            batch.check_state()
+        if not batch or batch.state == "finished":
+            self.action_done()
+        return True
 
     @ssi_decorator.insert_on_form_view()
     def _insert_form_element(self, view_arch):

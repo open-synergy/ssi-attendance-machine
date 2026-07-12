@@ -4,6 +4,7 @@
 
 from odoo_yaml_test import YamlTransactionCase
 
+from odoo.exceptions import UserError
 from odoo.tests import tagged
 
 
@@ -11,3 +12,21 @@ from odoo.tests import tagged
 class TestAttendanceMachineImport(YamlTransactionCase):
     def test_attendance_machine_import(self):
         self.run_yaml_scenario("test_data_attendance_machine_import.yaml")
+
+    def test_ignore_error_line_without_reason_raises(self):
+        machine = self.env["attendance_machine"].create(
+            {"name": "Ignore Reason Test Machine", "code": "BL0127PY01"}
+        )
+        machine_import = self.env["attendance_machine_import"].create(
+            {"date": "2024-01-28", "machine_id": machine.id}
+        )
+        data_line = self.env["attendance_machine_import.data"].create(
+            {
+                "import_id": machine_import.id,
+                "sequence": 1,
+                "state": "error",
+                "error_message": "Sample error for ignore reason test",
+            }
+        )
+        with self.assertRaises(UserError):
+            data_line.action_ignore()
