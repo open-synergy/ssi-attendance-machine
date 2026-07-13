@@ -102,14 +102,20 @@ class TestAttendanceMachineImport(YamlTransactionCase):
             )
         )
 
+        # NOTE: this asserts the CORE contract only (base keys present, check_out
+        # absent/present as expected). It does not assert exact key equality,
+        # because when a glue module (e.g. Operating Unit) is also installed,
+        # its override of this hook may legitimately add extra keys (e.g.
+        # operating_unit_id) on top of the base contract.
         vals = data_line._prepare_attendance_vals(
             employee, timesheet, "2026-02-10", "2026-02-10 08:00:00"
         )
-        self.assertEqual(
-            set(vals.keys()), {"employee_id", "date", "check_in", "sheet_id"}
+        self.assertTrue(
+            {"employee_id", "date", "check_in", "sheet_id"}.issubset(vals.keys())
         )
         self.assertEqual(vals["employee_id"], employee.id)
         self.assertEqual(vals["sheet_id"], timesheet.id)
+        self.assertNotIn("check_out", vals)
 
         vals_with_checkout = data_line._prepare_attendance_vals(
             employee,
@@ -118,8 +124,9 @@ class TestAttendanceMachineImport(YamlTransactionCase):
             "2026-02-10 08:00:00",
             check_out="2026-02-10 17:00:00",
         )
-        self.assertEqual(
-            set(vals_with_checkout.keys()),
-            {"employee_id", "date", "check_in", "sheet_id", "check_out"},
+        self.assertTrue(
+            {"employee_id", "date", "check_in", "sheet_id", "check_out"}.issubset(
+                vals_with_checkout.keys()
+            )
         )
         self.assertEqual(vals_with_checkout["check_out"], "2026-02-10 17:00:00")
