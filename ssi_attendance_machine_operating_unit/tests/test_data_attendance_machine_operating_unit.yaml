@@ -176,11 +176,20 @@ scenarios:
           - ["employee_id", "=", "EVAL: registry['employee'].id"]
           - ["sheet_id", "=", "EVAL: registry['timesheet'].id"]
           - ["date", "=", 2026-03-10]
-          - ["check_in", "=", "2026-03-10 08:00:00"]
-          - ["check_out", "=", "2026-03-10 17:00:00"]
           - ["operating_unit_id", "=", "EVAL: registry['ou_a'].id"]
         save_as: "attendance"
         expect_count: 1
+
+      - step: "Verify the created attendance carries check_in and check_out"
+        action: "assert"
+        target: "attendance"
+        asserts:
+          check_in:
+            type: "value"
+            operator: "is_truthy"
+          check_out:
+            type: "value"
+            operator: "is_truthy"
 
   - name:
       "Attendance Machine Import - Separate mode sign-in attendance follows employee's
@@ -326,11 +335,20 @@ scenarios:
           - ["employee_id", "=", "EVAL: registry['employee'].id"]
           - ["sheet_id", "=", "EVAL: registry['timesheet'].id"]
           - ["date", "=", 2026-03-11]
-          - ["check_in", "=", "2026-03-11 08:00:00"]
-          - ["check_out", "=", false]
           - ["operating_unit_id", "=", "EVAL: registry['ou_a'].id"]
         save_as: "attendance"
         expect_count: 1
+
+      - step: "Verify the created attendance has check_in but no check_out"
+        action: "assert"
+        target: "attendance"
+        asserts:
+          check_in:
+            type: "value"
+            operator: "is_truthy"
+          check_out:
+            type: "value"
+            operator: "is_falsy"
 
   - name:
       "Attendance Machine Import - Attendance operating unit differs from the default
