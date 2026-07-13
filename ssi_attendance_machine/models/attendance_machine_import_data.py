@@ -126,6 +126,25 @@ class AttendanceMachineImportData(models.Model):
             limit=1,
         )
 
+    def _prepare_attendance_vals(
+        self, employee, sheet, att_date, check_in, check_out=False
+    ):
+        """Build the vals dict for the hr.timesheet_attendance record.
+
+        Single hook point so glue modules can inject extra dimensions
+        (e.g. operating unit) without touching the core import logic.
+        """
+        self.ensure_one()
+        vals = {
+            "employee_id": employee.id,
+            "date": att_date,
+            "check_in": check_in,
+            "sheet_id": sheet.id,
+        }
+        if check_out:
+            vals["check_out"] = check_out
+        return vals
+
     def _parse_datetime(self, value, fmt):
         """Parse a datetime string using the given strptime format string."""
         if not value or not fmt:
@@ -345,15 +364,11 @@ Solution: Create or open a timesheet for this employee covering the date,
                     existing.check_out = check_out_utc
                 self.attendance_id = existing.id
             else:
-                vals = {
-                    "employee_id": employee.id,
-                    "date": att_date,
-                    "check_in": check_in_utc,
-                    "sheet_id": sheet.id,
-                }
-                if check_out_utc:
-                    vals["check_out"] = check_out_utc
-                att = Attendance.create(vals)
+                att = Attendance.create(
+                    self._prepare_attendance_vals(
+                        employee, sheet, att_date, check_in_utc, check_out_utc
+                    )
+                )
                 self.attendance_id = att.id
 
         elif mapping.row_mode == "separate":
@@ -408,12 +423,7 @@ Solution: Create or open a timesheet for this employee covering the date,
                     self.attendance_id = existing.id
                 else:
                     att = Attendance.create(
-                        {
-                            "employee_id": employee.id,
-                            "date": att_date,
-                            "check_in": dt_utc,
-                            "sheet_id": sheet.id,
-                        }
+                        self._prepare_attendance_vals(employee, sheet, att_date, dt_utc)
                     )
                     self.attendance_id = att.id
 

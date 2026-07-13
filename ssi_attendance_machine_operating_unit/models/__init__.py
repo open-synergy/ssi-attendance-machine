@@ -3,3 +3,4 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 from . import attendance_machine_import
+from . import attendance_machine_import_data

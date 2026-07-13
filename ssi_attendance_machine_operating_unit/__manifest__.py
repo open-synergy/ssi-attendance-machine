@@ -14,6 +14,8 @@
     "depends": [
         "ssi_attendance_machine",
         "ssi_operating_unit_mixin",
+        "ssi_timesheet_attendance_operating_unit",
+        "ssi_hr_employee_operating_unit",
     ],
     "data": [
         "security/res_group/attendance_machine_import.xml",
