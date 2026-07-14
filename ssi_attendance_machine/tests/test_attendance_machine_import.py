@@ -75,6 +75,39 @@ class TestAttendanceMachineImport(YamlTransactionCase):
             wizard.action_confirm()
         self.assertEqual(data_line.data, '{"emp": "OLD"}')
 
+    def test_failed_pending_job_does_not_block_import_done(self):
+        machine = self.env["attendance_machine"].create(
+            {"name": "BL-0185 Pending Job Test Machine", "code": "BL0185PY01"}
+        )
+        machine_import = self.env["attendance_machine_import"].create(
+            {"date": "2026-07-14", "machine_id": machine.id}
+        )
+        data_line = self.env["attendance_machine_import.data"].create(
+            {
+                "import_id": machine_import.id,
+                "sequence": 1,
+                "state": "done",
+            }
+        )
+        batch = self.env["queue.job.batch"].get_new_batch("BL-0185 Test Batch")
+        job = (
+            data_line.with_context(job_batch=batch)
+            .with_delay(description="BL-0185 pending job test")
+            ._process_attendance()
+        )
+        # Simulate a job that failed and is orphaned from a stale run: force
+        # it to "failed" without ever actually re-running _process_attendance.
+        job.db_record().write({"state": "failed"})
+        batch.write({"state": "progress"})
+        machine_import.write(
+            {"state": "queue_done", "done_queue_job_batch_id": batch.id}
+        )
+
+        machine_import._try_action_done()
+
+        self.assertEqual(machine_import.state, "done")
+        self.assertEqual(job.db_record().state, "done")
+
     def test_prepare_attendance_vals_hook(self):
         machine = self.env["attendance_machine"].create(
             {"name": "Prepare Vals Hook Test Machine", "code": "BL0175PY01"}

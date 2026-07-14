@@ -549,5 +549,10 @@ Solution: Fill in the ignore reason before ignoring this line"""
 
     def _force_queue_job_done(self):
         self.ensure_one()
-        if self.queue_job_id and self.queue_job_id.state != "done":
-            self.queue_job_id.button_done()
+        if self.queue_job_id:
+            if self.queue_job_id.state != "done":
+                self.queue_job_id.button_done()
+            return True
+        # Lines created before queue_job_id was tracked have no job link here.
+        # The import-level _force_pending_queue_job_done() sweeps those up.
+        return True
