@@ -307,24 +307,31 @@ Solution: Check the existing import or use a different file"""
         self.ensure_one()
         return self.data_ids.filtered(lambda d: d.state == "error")
 
+    def _get_unfinished_data(self):
+        self.ensure_one()
+        return self.data_ids.filtered(lambda d: d.state in ("draft", "error"))
+
+    def _force_pending_queue_job_done(self):
+        self.ensure_one()
+        for job in self.done_queue_job_ids.filtered(lambda j: j.state != "done"):
+            job.button_done()
+
     def _recompute_queue_done_result(self):
         self.ensure_one()
         self.done_queue_job_batch_id.enqueue()
-        batch_finished = self.done_queue_job_batch_state == "finished"
-        if batch_finished and not self._get_error_data():
-            self.action_done()
+        self._try_action_done()
 
     def _try_action_done(self):
         self.ensure_one()
         if self.state != "queue_done":
             return True
-        if self._get_error_data():
+        if self._get_unfinished_data():
             return True
+        self._force_pending_queue_job_done()
         batch = self.done_queue_job_batch_id
         if batch:
             batch.check_state()
-        if not batch or batch.state == "finished":
-            self.action_done()
+        self.action_done()
         return True
 
     @ssi_decorator.insert_on_form_view()

@@ -414,6 +414,189 @@ scenarios:
             type: "value"
             expected: "done"
 
+  - name:
+      "Attendance Machine Import - Ignoring the last error line completes the import"
+    steps:
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "BL-0185 Ignore Last Error Test Machine"
+          code: "BL0185A1"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-07-14"
+          machine_id: "EVAL: registry['machine'].id"
+
+      - step: "Force import into Queue To Done state"
+        action: "write"
+        target: "machine_import"
+        values:
+          state: "queue_done"
+
+      - step: "Create a resolved (done) data line"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_done"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 1
+          state: "done"
+
+      - step: "Create the last remaining error data line, without a queue job link"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_error"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 2
+          state: "error"
+          error_message: "Sample error, will be ignored"
+
+      - step: "Fill in ignore reason"
+        action: "write"
+        target: "data_line_error"
+        values:
+          ignore_reason: "Duplicated row, safe to ignore"
+
+      - step: "Ignore the last error line"
+        action: "call"
+        target: "data_line_error"
+        method: "action_ignore"
+        asserts:
+          state:
+            type: "value"
+            expected: "ignored"
+
+      - step: "Assert import document auto-completed to done"
+        action: "assert"
+        target: "machine_import"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+          num_of_error:
+            type: "value"
+            expected: 0
+          num_of_ignored:
+            type: "value"
+            expected: 1
+
+  - name: "Attendance Machine Import - Draft line blocks import from completing"
+    steps:
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "BL-0185 Draft Blocks Done Test Machine"
+          code: "BL0185A2"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-07-14"
+          machine_id: "EVAL: registry['machine'].id"
+
+      - step: "Force import into Queue To Done state"
+        action: "write"
+        target: "machine_import"
+        values:
+          state: "queue_done"
+
+      - step: "Create a resolved (done) data line"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_done"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 1
+          state: "done"
+
+      - step: "Create a data line still in draft"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_draft"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 2
+
+      - step: "Try to auto-complete the import document"
+        action: "call"
+        target: "machine_import"
+        method: "_try_action_done"
+
+      - step: "Assert import document stays in queue_done"
+        action: "assert"
+        target: "machine_import"
+        asserts:
+          state:
+            type: "value"
+            expected: "queue_done"
+
+  - name: "Attendance Machine Import - Error line blocks import from completing"
+    steps:
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "BL-0185 Error Blocks Done Test Machine"
+          code: "BL0185A3"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-07-14"
+          machine_id: "EVAL: registry['machine'].id"
+
+      - step: "Force import into Queue To Done state"
+        action: "write"
+        target: "machine_import"
+        values:
+          state: "queue_done"
+
+      - step: "Create a resolved (done) data line"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_done"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 1
+          state: "done"
+
+      - step: "Create a data line still in error"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_error"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 2
+          state: "error"
+          error_message: "Sample unresolved error"
+
+      - step: "Try to auto-complete the import document"
+        action: "call"
+        target: "machine_import"
+        method: "_try_action_done"
+
+      - step: "Assert import document stays in queue_done"
+        action: "assert"
+        target: "machine_import"
+        asserts:
+          state:
+            type: "value"
+            expected: "queue_done"
+
   - name: "Attendance Machine Import - Data line counters"
     steps:
       - step: "Create attendance machine"
