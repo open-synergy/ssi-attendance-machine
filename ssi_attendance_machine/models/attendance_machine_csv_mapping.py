@@ -22,6 +22,30 @@ class AttendanceMachineCsvMapping(
 
     # --- File format ---
 
+    file_format = fields.Selection(
+        string="File Format",
+        selection=[
+            ("csv", "CSV / Delimited Text"),
+            ("excel", "Excel (.xls / .xlsx)"),
+        ],
+        required=True,
+        default="csv",
+        help=(
+            "Format of the attendance file to be imported.\n"
+            "- CSV / Delimited Text: parsed using Encoding, Delimiter and "
+            "Text Qualifier below.\n"
+            "- Excel: parsed by worksheet using Sheet Index below; "
+            "Encoding, Delimiter and Text Qualifier are ignored."
+        ),
+    )
+    sheet_index = fields.Integer(
+        string="Sheet Index",
+        default=0,
+        help=(
+            "0-based index of the worksheet to read when File Format = "
+            "Excel. Ignored for CSV / Delimited Text files."
+        ),
+    )
     file_encoding = fields.Selection(
         string="Encoding",
         selection=[
@@ -264,11 +288,13 @@ class AttendanceMachineCsvMapping(
         ),
     )
 
-    @api.constrains("offset_row", "offset_column")
+    @api.constrains("offset_row", "offset_column", "sheet_index")
     def _check_offsets(self):
         for rec in self:
             if rec.offset_row < 0 or rec.offset_column < 0:
                 raise ValidationError(_("Offsets cannot be negative."))
+            if rec.sheet_index < 0:
+                raise ValidationError(_("Sheet Index cannot be negative."))
 
     def _get_column_delimiter_character(self):
         self.ensure_one()

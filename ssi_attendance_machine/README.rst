@@ -31,6 +31,9 @@ Features:
   with an extra overtime label
 * Discard junk/duplicate rows before processing via a configurable exclude
   column and comma-separated exclude values on the CSV mapping
+* Read Excel (.xls / .xlsx) files directly as an import source, in addition
+  to CSV / delimited text, using the same column/offset/mapping
+  configuration
 * Import attendance data and create timesheet attendance records
 
 **Table of contents**

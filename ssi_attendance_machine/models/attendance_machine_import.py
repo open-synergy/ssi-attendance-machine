@@ -8,8 +8,10 @@ import hashlib
 import io
 import json
 
+import xlrd
+
 from odoo import _, api, fields, models
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 
 from odoo.addons.ssi_decorator import ssi_decorator
 
@@ -232,31 +234,17 @@ Solution: Check the existing import or use a different file"""
         file_content = base64.b64decode(self.attendance_file)
         self.attendance_file_hash = hashlib.sha256(file_content).hexdigest()
 
-        encoding = "utf-8"
-        if mapping and mapping.file_encoding:
-            encoding = mapping.file_encoding
-        content_str = file_content.decode(encoding)
-
-        delimiter = ","
-        if mapping:
-            delimiter = mapping._get_column_delimiter_character()
-
-        quotechar = '"'
-        if mapping and mapping.quotechar:
-            quotechar = mapping.quotechar
-
         offset_row = mapping.offset_row if mapping else 0
         no_header = mapping.no_header if mapping else False
         skip_empty = mapping.skip_empty_lines if mapping else False
 
-        lines_io = io.StringIO(content_str)
-        reader = csv.reader(lines_io, delimiter=delimiter, quotechar=quotechar)
+        rows = self._get_import_file_rows(file_content)
 
         data_vals = []
         headers = None
         seq = 1
 
-        for i, row in enumerate(reader):
+        for i, row in enumerate(rows):
             # Skip offset rows from the top
             if i < offset_row:
                 continue
@@ -286,6 +274,110 @@ Solution: Check the existing import or use a different file"""
             self.env["attendance_machine_import.data"].create(data_vals)
 
         return True
+
+    def _get_import_file_rows(self, file_content):
+        """
+        Return the raw rows of the attendance file as a list of rows, each
+        row a list of string cells, following the format configured on the
+        machine's CSV mapping (CSV / Delimited Text, the default, or
+        Excel).
+
+        Row offset, header detection and empty line skipping stay in
+        `action_load_data` so both formats go through identical treatment.
+        """
+        self.ensure_one()
+        mapping = self.machine_id.csv_mapping_id
+
+        if mapping and mapping.file_format == "excel":
+            return self._get_import_file_rows_excel(file_content, mapping)
+
+        encoding = "utf-8"
+        if mapping and mapping.file_encoding:
+            encoding = mapping.file_encoding
+        content_str = file_content.decode(encoding)
+
+        delimiter = ","
+        if mapping:
+            delimiter = mapping._get_column_delimiter_character()
+
+        quotechar = '"'
+        if mapping and mapping.quotechar:
+            quotechar = mapping.quotechar
+
+        lines_io = io.StringIO(content_str)
+        reader = csv.reader(lines_io, delimiter=delimiter, quotechar=quotechar)
+        return list(reader)
+
+    def _get_import_file_rows_excel(self, file_content, mapping):
+        """
+        Read an Excel (.xls/.xlsx) attendance file with `xlrd` and return
+        its rows as a list of rows, each row a list of normalized string
+        cells (see `_get_excel_cell_value`).
+        """
+        self.ensure_one()
+        try:
+            book = xlrd.open_workbook(file_contents=file_content)
+            sheet = book.sheet_by_index(mapping.sheet_index)
+        except Exception as error:  # pylint: disable=broad-except
+            error_message = """
+Context: Reading Excel attendance file
+Database ID: %s
+Problem: Unable to read the Excel file (%s)
+Solution: Check that the file is a valid, non-corrupted .xls/.xlsx file, \
+and that Sheet Index points to an existing worksheet
+""" % (
+                self.id,
+                error,
+            )
+            raise UserError(_(error_message)) from error
+
+        return [
+            [
+                self._get_excel_cell_value(
+                    sheet.cell(row_index, col_index), book, mapping
+                )
+                for col_index in range(sheet.ncols)
+            ]
+            for row_index in range(sheet.nrows)
+        ]
+
+    def _get_excel_cell_value(self, cell, book, mapping):
+        """
+        Normalize a single xlrd cell to a plain string, matching the CSV
+        path's contract:
+        - empty/blank cell -> ""
+        - text cell -> as-is
+        - whole number -> rendered without a trailing decimal point (e.g.
+          "1499", not "1499.0") so employee/machine codes keep matching
+        - fractional number -> plain decimal
+        - date/time cell -> rendered with the mapping's `datetime_format`
+          (Datetime Mode = Combined), or with `date_format`/`time_format`
+          (Datetime Mode = Separate, disambiguated by whether the
+          underlying Excel serial value carries a date part), so
+          `_parse_datetime` can read it back.
+        """
+        cell_type = cell.ctype
+        if cell_type in (xlrd.XL_CELL_EMPTY, xlrd.XL_CELL_BLANK):
+            return ""
+        if cell_type == xlrd.XL_CELL_TEXT:
+            return cell.value
+        if cell_type == xlrd.XL_CELL_BOOLEAN:
+            return "1" if cell.value else "0"
+        if cell_type == xlrd.XL_CELL_NUMBER:
+            value = cell.value
+            return str(int(value)) if value == int(value) else repr(value)
+        if cell_type == xlrd.XL_CELL_DATE:
+            cell_dt = xlrd.xldate_as_datetime(cell.value, book.datemode)
+            if mapping.datetime_mode == "separate":
+                if cell.value < 1:
+                    fmt = mapping.time_format or "%H:%M:%S"
+                else:
+                    fmt = mapping.date_format or "%Y-%m-%d"
+                return cell_dt.strftime(fmt)
+            fmt = mapping.datetime_format or "%Y-%m-%d %H:%M:%S"
+            return cell_dt.strftime(fmt)
+        # XL_CELL_ERROR or any other type not expected in attendance files.
+        return str(cell.value)
 
     @ssi_decorator.post_queue_done_action()
     def _01_process_attendance_data_on_queue_done(self):
