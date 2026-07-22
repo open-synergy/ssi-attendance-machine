@@ -1886,3 +1886,38 @@ scenarios:
           attendance_id:
             type: "value"
             operator: "is_falsy"
+
+  - name: "Attendance Machine CSV Mapping - file_format/sheet_index default to CSV"
+    steps:
+      - step: "Create CSV mapping without specifying file_format/sheet_index"
+        action: "create"
+        model: "attendance_machine_csv_mapping"
+        save_as: "csv_mapping"
+        values:
+          name: "File Format Default Test CSV Mapping"
+          code: "BL25C1"
+          employee_column: "employee_id"
+
+      - step: "Assert file_format defaults to csv and sheet_index defaults to 0"
+        action: "assert"
+        target: "csv_mapping"
+        asserts:
+          file_format:
+            type: "value"
+            expected: "csv"
+          sheet_index:
+            type: "value"
+            expected: 0
+
+  - name: "Attendance Machine CSV Mapping - negative sheet_index is rejected"
+    steps:
+      - step: "Create CSV mapping with a negative sheet_index"
+        action: "create"
+        model: "attendance_machine_csv_mapping"
+        expect_error:
+          type: "ValidationError"
+        values:
+          name: "Negative Sheet Index Test CSV Mapping"
+          code: "BL25C2"
+          employee_column: "employee_id"
+          sheet_index: -1

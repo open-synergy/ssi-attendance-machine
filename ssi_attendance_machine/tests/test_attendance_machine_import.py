@@ -2,6 +2,11 @@
 # Copyright 2024 PT. Simetri Sinergi Indonesia
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
+import base64
+import io
+import json
+
+import xlwt
 from odoo_yaml_test import YamlTransactionCase
 
 from odoo.exceptions import UserError
@@ -346,3 +351,96 @@ class TestAttendanceMachineImport(YamlTransactionCase):
             )
         )
         self.assertEqual(vals_with_checkout["check_out"], "2026-02-10 17:00:00")
+
+    def test_excel_import_reads_xls_file(self):
+        """Python murni — pemicu P10 (fixture butuh membangun berkas biner
+        .xls sungguhan lalu meng-encode base64: mustahil dalam satu
+        ekspresi `EVAL:` YAML).
+
+        Membangun berkas `.xls` in-memory dengan `xlwt` (header + 3 baris,
+        termasuk satu sel kosong dan satu sel angka bulat), lalu
+        memverifikasi `action_load_data` membaca lewat jalur Excel: jumlah
+        `data_ids` sesuai jumlah baris data, sel kosong terbaca `""`, dan
+        sel angka bulat terbaca `"1499"` (bukan `"1499.0"`).
+        """
+        book = xlwt.Workbook()
+        sheet = book.add_sheet("Sheet1")
+        for col, header in enumerate(["employee_id", "code", "remark"]):
+            sheet.write(0, col, header)
+        sheet.write(1, 0, "EMP001")
+        sheet.write(1, 1, 1499)
+        sheet.write(1, 2, "first note")
+        sheet.write(2, 0, "EMP002")
+        # Column 1 intentionally left unwritten -> blank cell in xlrd.
+        sheet.write(2, 2, "second note")
+        sheet.write(3, 0, "EMP003")
+        sheet.write(3, 1, 7)
+        # Column 2 intentionally left unwritten -> blank cell in xlrd.
+
+        buffer = io.BytesIO()
+        book.save(buffer)
+        xls_bytes = buffer.getvalue()
+
+        mapping = self.env["attendance_machine_csv_mapping"].create(
+            {
+                "name": "Excel Import Test CSV Mapping",
+                "code": "BL25PX01",
+                "employee_column": "employee_id",
+                "file_format": "excel",
+            }
+        )
+        machine = self.env["attendance_machine"].create(
+            {
+                "name": "Excel Import Test Machine",
+                "code": "BL25PX01A",
+                "csv_mapping_id": mapping.id,
+            }
+        )
+        machine_import = self.env["attendance_machine_import"].create(
+            {"date": "2026-07-23", "machine_id": machine.id}
+        )
+        machine_import.attendance_file = base64.b64encode(xls_bytes)
+
+        machine_import.action_load_data()
+
+        self.assertEqual(len(machine_import.data_ids), 3)
+        rows = [
+            json.loads(line.data) for line in machine_import.data_ids.sorted("sequence")
+        ]
+        self.assertEqual(rows[0]["employee_id"], "EMP001")
+        self.assertEqual(rows[0]["code"], "1499")
+        self.assertEqual(rows[1]["code"], "")
+        self.assertEqual(rows[2]["remark"], "")
+
+    def test_excel_import_corrupt_file_raises_user_error(self):
+        """Python murni — pemicu P10 (fixture butuh byte biner acak yang
+        bukan `.xls`/`.xlsx` sah, mustahil diekspresikan sebagai `EVAL:`
+        di YAML tanpa Python sungguhan).
+
+        Berkas rusak/bukan Excel dengan `file_format="excel"` melempar
+        `UserError` terstruktur, bukan traceback mentah dari `xlrd`.
+        """
+        mapping = self.env["attendance_machine_csv_mapping"].create(
+            {
+                "name": "Excel Import Corrupt Test CSV Mapping",
+                "code": "BL25PX02",
+                "employee_column": "employee_id",
+                "file_format": "excel",
+            }
+        )
+        machine = self.env["attendance_machine"].create(
+            {
+                "name": "Excel Import Corrupt Test Machine",
+                "code": "BL25PX02A",
+                "csv_mapping_id": mapping.id,
+            }
+        )
+        machine_import = self.env["attendance_machine_import"].create(
+            {"date": "2026-07-23", "machine_id": machine.id}
+        )
+        machine_import.attendance_file = base64.b64encode(
+            b"not a real xls file \x00\x01\x02\x03"
+        )
+
+        with self.assertRaises(UserError):
+            machine_import.action_load_data()

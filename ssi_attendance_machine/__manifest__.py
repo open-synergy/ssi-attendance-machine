@@ -13,6 +13,7 @@
     "license": "AGPL-3",
     "installable": True,
     "application": False,
+    "external_dependencies": {"python": ["xlrd"]},
     "depends": [
         "ssi_web_widget_json",
         "ssi_master_data_mixin",

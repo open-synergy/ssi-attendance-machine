@@ -58,9 +58,23 @@
                 <page name="file_format" string="File Format">
                     <group name="file_format_1">
                         <group>
-                            <field name="file_encoding" />
-                            <field name="delimiter" />
-                            <field name="quotechar" />
+                            <field name="file_format" />
+                            <field
+                                    name="sheet_index"
+                                    attrs="{'invisible': [('file_format','!=','excel')]}"
+                                />
+                            <field
+                                    name="file_encoding"
+                                    attrs="{'invisible': [('file_format','!=','csv')]}"
+                                />
+                            <field
+                                    name="delimiter"
+                                    attrs="{'invisible': [('file_format','!=','csv')]}"
+                                />
+                            <field
+                                    name="quotechar"
+                                    attrs="{'invisible': [('file_format','!=','csv')]}"
+                                />
                         </group>
                         <group>
                             <field name="no_header" />
