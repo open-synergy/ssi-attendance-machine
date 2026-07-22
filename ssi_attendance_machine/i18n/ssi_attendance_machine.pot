@@ -137,6 +137,18 @@ msgid ""
 "\n"
 "Context: Processing attendance import data line\n"
 "Document: %s (sequence %s)\n"
+"Problem: Row Type Column '%s' is not present in the row data\n"
+"Solution: Verify the Row Type Column configured in the CSV mapping matches\n"
+"          an actual column name in the source file, then retry the queue job"
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: code:addons/ssi_attendance_machine/models/attendance_machine_import_data.py:0
+#, python-format
+msgid ""
+"\n"
+"Context: Processing attendance import data line\n"
+"Document: %s (sequence %s)\n"
 "Problem: Row data is empty or not valid JSON\n"
 "Solution: Reload the import data from the source file, then retry the queue job"
 msgstr ""
@@ -619,8 +631,24 @@ msgid ""
 msgstr ""
 
 #. module: ssi_attendance_machine
+#: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine_csv_mapping__exclude_column
+msgid ""
+"Column name/index used to decide whether a row must be discarded before "
+"processing (e.g. a machine exception/validity column). Leave empty together "
+"with Exclude Values to disable this feature."
+msgstr ""
+
+#. module: ssi_attendance_machine
 #: model:ir.model.fields.selection,name:ssi_attendance_machine.selection__attendance_machine_csv_mapping__datetime_mode__combined
 msgid "Combined (date and time in one field)"
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine_csv_mapping__exclude_values
+msgid ""
+"Comma-separated list of values in the Exclude Column that mark a row as "
+"junk/duplicate to be discarded (e.g. 'Invalid,Mengulang'). Leave empty "
+"together with Exclude Column to disable this feature."
 msgstr ""
 
 #. module: ssi_attendance_machine
@@ -846,6 +874,16 @@ msgstr ""
 #. module: ssi_attendance_machine
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data__error_message
 msgid "Error Message"
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_csv_mapping__exclude_column
+msgid "Exclude Column"
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_csv_mapping__exclude_values
+msgid "Exclude Values"
 msgstr ""
 
 #. module: ssi_attendance_machine
@@ -1414,6 +1452,11 @@ msgid "Reviewer"
 msgstr ""
 
 #. module: ssi_attendance_machine
+#: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_csv_mapping_view_form
+msgid "Row Exclusion"
+msgstr ""
+
+#. module: ssi_attendance_machine
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_csv_mapping__row_mode
 msgid "Row Mode"
 msgstr ""
@@ -1426,6 +1469,14 @@ msgstr ""
 #. module: ssi_attendance_machine
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_csv_mapping__row_type_column
 msgid "Row Type Column"
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: code:addons/ssi_attendance_machine/models/attendance_machine_import_data.py:0
+#, python-format
+msgid ""
+"Row excluded before processing: column '%s' has value '%s', which matches "
+"the Exclude Values configured on the CSV mapping."
 msgstr ""
 
 #. module: ssi_attendance_machine
