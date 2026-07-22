@@ -217,6 +217,7 @@ class TestAttendanceMachineImport(YamlTransactionCase):
             {
                 "name": "Sign Token Test Mapping",
                 "code": "BL20PY01",
+                "employee_column": "employee_id",
                 "row_mode": "separate",
                 "sign_in_value": ",Lembur Masuk",
                 "sign_out_value": "C/Keluar,Lembur Keluar",
@@ -231,6 +232,7 @@ class TestAttendanceMachineImport(YamlTransactionCase):
             {
                 "name": "Sign Token Single Value Test Mapping",
                 "code": "BL20PY02",
+                "employee_column": "employee_id",
                 "row_mode": "separate",
                 "sign_in_value": "IN",
                 "sign_out_value": "OUT",
@@ -243,6 +245,7 @@ class TestAttendanceMachineImport(YamlTransactionCase):
             {
                 "name": "Sign Token Blank Test Mapping",
                 "code": "BL20PY03",
+                "employee_column": "employee_id",
                 "row_mode": "separate",
             }
         )
@@ -261,6 +264,7 @@ class TestAttendanceMachineImport(YamlTransactionCase):
             {
                 "name": "Exclude Token Test Mapping",
                 "code": "BL20PY04",
+                "employee_column": "employee_id",
                 "exclude_column": "exception",
                 "exclude_values": "Invalid,Mengulang,",
             }
@@ -271,6 +275,7 @@ class TestAttendanceMachineImport(YamlTransactionCase):
             {
                 "name": "Exclude Token No Values Test Mapping",
                 "code": "BL20PY05",
+                "employee_column": "employee_id",
                 "exclude_column": "exception",
             }
         )
@@ -280,6 +285,7 @@ class TestAttendanceMachineImport(YamlTransactionCase):
             {
                 "name": "Exclude Token No Column Test Mapping",
                 "code": "BL20PY06",
+                "employee_column": "employee_id",
                 "exclude_values": "Invalid,Mengulang",
             }
         )
