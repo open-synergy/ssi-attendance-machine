@@ -1285,3 +1285,604 @@ scenarios:
           attendance_count:
             type: "value"
             expected: 0
+
+  - name:
+      "Attendance Machine Import - Separate mode multi-value sign columns (blank +
+      labeled tokens)"
+    steps:
+      - step: "Create machine model"
+        action: "create"
+        model: "attendance_machine_model"
+        save_as: "machine_model"
+        values:
+          name: "Multi Sign Test Model"
+          code: "BL20M1"
+
+      - step: "Create CSV mapping (separate row mode, multi-value sign columns)"
+        action: "create"
+        model: "attendance_machine_csv_mapping"
+        save_as: "csv_mapping"
+        values:
+          name: "Multi Sign Test CSV Mapping"
+          code: "BL20C1"
+          file_encoding: "utf-8"
+          delimiter: "comma"
+          row_mode: "separate"
+          datetime_mode: "combined"
+          employee_column: "employee_id"
+          row_type_column: "row_type"
+          sign_in_value: ",Lembur Masuk"
+          sign_out_value: "C/Keluar,Lembur Keluar"
+          datetime_column: "datetime"
+          datetime_format: "%Y-%m-%d %H:%M:%S"
+
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "Multi Sign Test Machine"
+          code: "BL20A1"
+          attendance_model_id: "EVAL: registry['machine_model'].id"
+          csv_mapping_id: "EVAL: registry['csv_mapping'].id"
+
+      - step: "Create employee"
+        action: "create"
+        model: "hr.employee"
+        save_as: "employee"
+        values:
+          name: "Multi Sign Test Employee"
+
+      - step: "Register employee code on the machine"
+        action: "create"
+        model: "attendance_machine.employee"
+        save_as: "machine_employee"
+        values:
+          machine_id: "EVAL: registry['machine'].id"
+          employee_id: "EVAL: registry['employee'].id"
+          employee_code: "BL20EMP1"
+
+      - step: "Get working schedule"
+        action: "search"
+        model: "resource.calendar"
+        domain: []
+        save_as: "working_schedule"
+        limit: 1
+        order: "id asc"
+
+      - step: "Create timesheet (draft)"
+        action: "create"
+        model: "hr.timesheet"
+        save_as: "timesheet"
+        as_user: "base.user_admin"
+        values:
+          employee_id: "EVAL: registry['employee'].id"
+          date_start: 2026-04-01
+          date_end: 2026-04-30
+          working_schedule_id: "EVAL: registry['working_schedule'].id"
+
+      - step: "Open timesheet"
+        action: "call"
+        target: "timesheet"
+        method: "action_open"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-04-10"
+          machine_id: "EVAL: registry['machine'].id"
+
+      - step: "Create blank row_type data line (means check-in)"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_blank_in"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 1
+          data:
+            '{"employee_id": "BL20EMP1", "row_type": "", "datetime": "2026-04-10
+            08:00:00"}'
+
+      - step: "Process the blank row_type data line directly"
+        action: "call"
+        target: "data_line_blank_in"
+        method: "_process_attendance"
+
+      - step: "Assert blank row_type resolved as check-in"
+        action: "assert"
+        target: "data_line_blank_in"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+          attendance_id:
+            type: "value"
+            operator: "is_truthy"
+
+      - step: "Create matching labeled sign-out data line, same date"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_labeled_out"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 2
+          data:
+            '{"employee_id": "BL20EMP1", "row_type": "Lembur Keluar", "datetime":
+            "2026-04-10 17:00:00"}'
+
+      - step: "Process the labeled sign-out data line directly"
+        action: "call"
+        target: "data_line_labeled_out"
+        method: "_process_attendance"
+
+      - step:
+          "Assert labeled sign-out resolved onto the same attendance as the blank
+          check-in"
+        action: "assert"
+        target: "data_line_labeled_out"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+          attendance_id:
+            type: "m2o"
+            expected: "REC: data_line_blank_in.attendance_id"
+
+      - step: "Verify the shared attendance now carries check_out"
+        action: "assert"
+        target: "data_line_blank_in"
+        asserts:
+          attendance_id.check_out:
+            type: "value"
+            operator: "is_truthy"
+
+      - step: "Create labeled sign-in data line, different date"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_labeled_in"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 3
+          data:
+            '{"employee_id": "BL20EMP1", "row_type": "Lembur Masuk", "datetime":
+            "2026-04-11 08:00:00"}'
+
+      - step: "Process the labeled sign-in data line directly"
+        action: "call"
+        target: "data_line_labeled_in"
+        method: "_process_attendance"
+
+      - step: "Assert labeled sign-in row_type also resolved as a check-in"
+        action: "assert"
+        target: "data_line_labeled_in"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+          attendance_id:
+            type: "value"
+            operator: "is_truthy"
+
+  - name:
+      "Attendance Machine Import - Exclude runs before employee resolution (unregistered
+      employee stays ignored, not error)"
+    steps:
+      - step: "Create machine model"
+        action: "create"
+        model: "attendance_machine_model"
+        save_as: "machine_model"
+        values:
+          name: "Exclude Before Employee Test Model"
+          code: "BL21M1"
+
+      - step: "Create CSV mapping with exclude column configured"
+        action: "create"
+        model: "attendance_machine_csv_mapping"
+        save_as: "csv_mapping"
+        values:
+          name: "Exclude Before Employee Test CSV Mapping"
+          code: "BL21C1"
+          file_encoding: "utf-8"
+          delimiter: "comma"
+          row_mode: "single"
+          datetime_mode: "combined"
+          employee_column: "employee_id"
+          check_in_column: "check_in"
+          check_out_column: "check_out"
+          datetime_format: "%Y-%m-%d %H:%M:%S"
+          exclude_column: "exception"
+          exclude_values: "Invalid,Mengulang"
+
+      - step: "Create attendance machine without registered employees"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "Exclude Before Employee Test Machine"
+          code: "BL21A1"
+          attendance_model_id: "EVAL: registry['machine_model'].id"
+          csv_mapping_id: "EVAL: registry['csv_mapping'].id"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-05-01"
+          machine_id: "EVAL: registry['machine'].id"
+
+      - step:
+          "Create data line with unregistered employee code and an excluded exception
+          value"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 1
+          data:
+            '{"employee_id": "BL21EMPUNREG", "check_in": "2026-05-01 08:00:00",
+            "check_out": "2026-05-01 17:00:00", "exception": "Invalid"}'
+
+      - step: "Process attendance data line directly"
+        action: "call"
+        target: "data_line"
+        method: "_process_attendance"
+
+      - step: "Assert data line ended ignored (not error) with attendance never touched"
+        action: "assert"
+        target: "data_line"
+        asserts:
+          state:
+            type: "value"
+            expected: "ignored"
+          ignore_reason:
+            type: "value"
+            operator: "is_truthy"
+          error_message:
+            type: "value"
+            operator: "is_falsy"
+          attendance_id:
+            type: "value"
+            operator: "is_falsy"
+
+  - name:
+      "Attendance Machine Import - Exclude column filled but exclude values empty
+      processes the row normally"
+    steps:
+      - step: "Create machine model"
+        action: "create"
+        model: "attendance_machine_model"
+        save_as: "machine_model"
+        values:
+          name: "Exclude No Values Test Model"
+          code: "BL22M1"
+
+      - step: "Create CSV mapping with exclude_column set but exclude_values empty"
+        action: "create"
+        model: "attendance_machine_csv_mapping"
+        save_as: "csv_mapping"
+        values:
+          name: "Exclude No Values Test CSV Mapping"
+          code: "BL22C1"
+          file_encoding: "utf-8"
+          delimiter: "comma"
+          row_mode: "single"
+          datetime_mode: "combined"
+          employee_column: "employee_id"
+          check_in_column: "check_in"
+          check_out_column: "check_out"
+          datetime_format: "%Y-%m-%d %H:%M:%S"
+          exclude_column: "exception"
+
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "Exclude No Values Test Machine"
+          code: "BL22A1"
+          attendance_model_id: "EVAL: registry['machine_model'].id"
+          csv_mapping_id: "EVAL: registry['csv_mapping'].id"
+
+      - step: "Create employee"
+        action: "create"
+        model: "hr.employee"
+        save_as: "employee"
+        values:
+          name: "Exclude No Values Test Employee"
+
+      - step: "Register employee code on the machine"
+        action: "create"
+        model: "attendance_machine.employee"
+        save_as: "machine_employee"
+        values:
+          machine_id: "EVAL: registry['machine'].id"
+          employee_id: "EVAL: registry['employee'].id"
+          employee_code: "BL22EMP1"
+
+      - step: "Get working schedule"
+        action: "search"
+        model: "resource.calendar"
+        domain: []
+        save_as: "working_schedule"
+        limit: 1
+        order: "id asc"
+
+      - step: "Create timesheet (draft)"
+        action: "create"
+        model: "hr.timesheet"
+        save_as: "timesheet"
+        as_user: "base.user_admin"
+        values:
+          employee_id: "EVAL: registry['employee'].id"
+          date_start: 2026-05-01
+          date_end: 2026-05-31
+          working_schedule_id: "EVAL: registry['working_schedule'].id"
+
+      - step: "Open timesheet"
+        action: "call"
+        target: "timesheet"
+        method: "action_open"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-05-05"
+          machine_id: "EVAL: registry['machine'].id"
+
+      - step:
+          "Create data line with blank exception value, no exclude_values configured"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 1
+          data:
+            '{"employee_id": "BL22EMP1", "check_in": "2026-05-05 08:00:00", "check_out":
+            "2026-05-05 17:00:00", "exception": ""}'
+
+      - step: "Process attendance data line directly"
+        action: "call"
+        target: "data_line"
+        method: "_process_attendance"
+
+      - step: "Assert data line was processed normally, not excluded"
+        action: "assert"
+        target: "data_line"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+          attendance_id:
+            type: "value"
+            operator: "is_truthy"
+
+  - name: "Attendance Machine Import - No exclude_column configured never discards rows"
+    steps:
+      - step: "Create machine model"
+        action: "create"
+        model: "attendance_machine_model"
+        save_as: "machine_model"
+        values:
+          name: "No Exclude Column Test Model"
+          code: "BL23M1"
+
+      - step: "Create CSV mapping without any exclude configuration"
+        action: "create"
+        model: "attendance_machine_csv_mapping"
+        save_as: "csv_mapping"
+        values:
+          name: "No Exclude Column Test CSV Mapping"
+          code: "BL23C1"
+          file_encoding: "utf-8"
+          delimiter: "comma"
+          row_mode: "single"
+          datetime_mode: "combined"
+          employee_column: "employee_id"
+          check_in_column: "check_in"
+          check_out_column: "check_out"
+          datetime_format: "%Y-%m-%d %H:%M:%S"
+
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "No Exclude Column Test Machine"
+          code: "BL23A1"
+          attendance_model_id: "EVAL: registry['machine_model'].id"
+          csv_mapping_id: "EVAL: registry['csv_mapping'].id"
+
+      - step: "Create employee"
+        action: "create"
+        model: "hr.employee"
+        save_as: "employee"
+        values:
+          name: "No Exclude Column Test Employee"
+
+      - step: "Register employee code on the machine"
+        action: "create"
+        model: "attendance_machine.employee"
+        save_as: "machine_employee"
+        values:
+          machine_id: "EVAL: registry['machine'].id"
+          employee_id: "EVAL: registry['employee'].id"
+          employee_code: "BL23EMP1"
+
+      - step: "Get working schedule"
+        action: "search"
+        model: "resource.calendar"
+        domain: []
+        save_as: "working_schedule"
+        limit: 1
+        order: "id asc"
+
+      - step: "Create timesheet (draft)"
+        action: "create"
+        model: "hr.timesheet"
+        save_as: "timesheet"
+        as_user: "base.user_admin"
+        values:
+          employee_id: "EVAL: registry['employee'].id"
+          date_start: 2026-05-01
+          date_end: 2026-05-31
+          working_schedule_id: "EVAL: registry['working_schedule'].id"
+
+      - step: "Open timesheet"
+        action: "call"
+        target: "timesheet"
+        method: "action_open"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-05-06"
+          machine_id: "EVAL: registry['machine'].id"
+
+      - step:
+          "Create data line whose data has 'Invalid' in an unrelated, unmapped column"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 1
+          data:
+            '{"employee_id": "BL23EMP1", "check_in": "2026-05-06 08:00:00", "check_out":
+            "2026-05-06 17:00:00", "note": "Invalid"}'
+
+      - step: "Process attendance data line directly"
+        action: "call"
+        target: "data_line"
+        method: "_process_attendance"
+
+      - step: "Assert data line was processed normally, not excluded"
+        action: "assert"
+        target: "data_line"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+          attendance_id:
+            type: "value"
+            operator: "is_truthy"
+
+  - name:
+      "Attendance Machine Import - Missing row_type_column key errors instead of
+      matching blank check-in"
+    steps:
+      - step: "Create machine model"
+        action: "create"
+        model: "attendance_machine_model"
+        save_as: "machine_model"
+        values:
+          name: "Missing Row Type Column Test Model"
+          code: "BL24M1"
+
+      - step: "Create CSV mapping pointing row_type_column at a column that won't exist"
+        action: "create"
+        model: "attendance_machine_csv_mapping"
+        save_as: "csv_mapping"
+        values:
+          name: "Missing Row Type Column Test CSV Mapping"
+          code: "BL24C1"
+          file_encoding: "utf-8"
+          delimiter: "comma"
+          row_mode: "separate"
+          datetime_mode: "combined"
+          employee_column: "employee_id"
+          row_type_column: "status_baru"
+          sign_in_value: ""
+          sign_out_value: "C/Keluar"
+          datetime_column: "datetime"
+          datetime_format: "%Y-%m-%d %H:%M:%S"
+
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "Missing Row Type Column Test Machine"
+          code: "BL24A1"
+          attendance_model_id: "EVAL: registry['machine_model'].id"
+          csv_mapping_id: "EVAL: registry['csv_mapping'].id"
+
+      - step: "Create employee"
+        action: "create"
+        model: "hr.employee"
+        save_as: "employee"
+        values:
+          name: "Missing Row Type Column Test Employee"
+
+      - step: "Register employee code on the machine"
+        action: "create"
+        model: "attendance_machine.employee"
+        save_as: "machine_employee"
+        values:
+          machine_id: "EVAL: registry['machine'].id"
+          employee_id: "EVAL: registry['employee'].id"
+          employee_code: "BL24EMP1"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-05-07"
+          machine_id: "EVAL: registry['machine'].id"
+
+      - step:
+          "Create data line whose row only has 'status', not the configured
+          'status_baru'"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 1
+          data: '{"employee_id": "BL24EMP1", "status": "C/Masuk"}'
+
+      - step: "Process attendance data line directly"
+        action: "call"
+        target: "data_line"
+        method: "_process_attendance"
+
+      - step:
+          "Assert data line errored out, mentioning the missing column, instead of
+          matching a blank check-in"
+        action: "assert"
+        target: "data_line"
+        asserts:
+          state:
+            type: "value"
+            expected: "error"
+          error_message:
+            type: "value"
+            operator: "contains"
+            expected: "status_baru"
+          attendance_id:
+            type: "value"
+            operator: "is_falsy"

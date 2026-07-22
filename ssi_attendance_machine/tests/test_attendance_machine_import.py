@@ -205,6 +205,92 @@ class TestAttendanceMachineImport(YamlTransactionCase):
         self.assertEqual(set(domain_ids), {attendance_1.id, attendance_2.id})
         self.assertNotIn(other_attendance.id, domain_ids)
 
+    def test_sign_value_tokens_keep_blank_tokens(self):
+        """Python murni — pemicu P1 (L-01: `action: call` YAML membuang nilai
+        balik method, sehingga list token tak bisa di-assert dari YAML).
+
+        `_get_sign_value_tokens` mempertahankan token kosong (blank Row Type
+        Column value bisa jadi label check-in/out yang sah), dan nilai tunggal
+        tanpa koma menghasilkan satu token identik dengan perilaku lama.
+        """
+        mapping = self.env["attendance_machine_csv_mapping"].create(
+            {
+                "name": "Sign Token Test Mapping",
+                "code": "BL20PY01",
+                "employee_column": "employee_id",
+                "row_mode": "separate",
+                "sign_in_value": ",Lembur Masuk",
+                "sign_out_value": "C/Keluar,Lembur Keluar",
+            }
+        )
+        self.assertEqual(mapping._get_sign_value_tokens("in"), ["", "Lembur Masuk"])
+        self.assertEqual(
+            mapping._get_sign_value_tokens("out"), ["C/Keluar", "Lembur Keluar"]
+        )
+
+        single_value_mapping = self.env["attendance_machine_csv_mapping"].create(
+            {
+                "name": "Sign Token Single Value Test Mapping",
+                "code": "BL20PY02",
+                "employee_column": "employee_id",
+                "row_mode": "separate",
+                "sign_in_value": "IN",
+                "sign_out_value": "OUT",
+            }
+        )
+        self.assertEqual(single_value_mapping._get_sign_value_tokens("in"), ["IN"])
+        self.assertEqual(single_value_mapping._get_sign_value_tokens("out"), ["OUT"])
+
+        blank_mapping = self.env["attendance_machine_csv_mapping"].create(
+            {
+                "name": "Sign Token Blank Test Mapping",
+                "code": "BL20PY03",
+                "employee_column": "employee_id",
+                "row_mode": "separate",
+            }
+        )
+        self.assertEqual(blank_mapping._get_sign_value_tokens("in"), [""])
+        self.assertEqual(blank_mapping._get_sign_value_tokens("out"), [""])
+
+    def test_exclude_value_tokens_discard_blank_tokens_and_disable_when_empty(self):
+        """Python murni — pemicu P1 (L-01: `action: call` YAML membuang nilai
+        balik method, sehingga list token tak bisa di-assert dari YAML).
+
+        `_get_exclude_value_tokens` membuang token kosong dan mengembalikan
+        list kosong (fitur nonaktif) bila `exclude_column` atau
+        `exclude_values` belum diisi.
+        """
+        mapping = self.env["attendance_machine_csv_mapping"].create(
+            {
+                "name": "Exclude Token Test Mapping",
+                "code": "BL20PY04",
+                "employee_column": "employee_id",
+                "exclude_column": "exception",
+                "exclude_values": "Invalid,Mengulang,",
+            }
+        )
+        self.assertEqual(mapping._get_exclude_value_tokens(), ["Invalid", "Mengulang"])
+
+        no_values_mapping = self.env["attendance_machine_csv_mapping"].create(
+            {
+                "name": "Exclude Token No Values Test Mapping",
+                "code": "BL20PY05",
+                "employee_column": "employee_id",
+                "exclude_column": "exception",
+            }
+        )
+        self.assertEqual(no_values_mapping._get_exclude_value_tokens(), [])
+
+        no_column_mapping = self.env["attendance_machine_csv_mapping"].create(
+            {
+                "name": "Exclude Token No Column Test Mapping",
+                "code": "BL20PY06",
+                "employee_column": "employee_id",
+                "exclude_values": "Invalid,Mengulang",
+            }
+        )
+        self.assertEqual(no_column_mapping._get_exclude_value_tokens(), [])
+
     def test_prepare_attendance_vals_hook(self):
         machine = self.env["attendance_machine"].create(
             {"name": "Prepare Vals Hook Test Machine", "code": "BL0175PY01"}

@@ -191,6 +191,25 @@ class AttendanceMachineCsvMapping(
         ),
     )
 
+    # --- Row exclusion ---
+
+    exclude_column = fields.Char(
+        string="Exclude Column",
+        help=(
+            "Column name/index used to decide whether a row must be discarded "
+            "before processing (e.g. a machine exception/validity column). "
+            "Leave empty together with Exclude Values to disable this feature."
+        ),
+    )
+    exclude_values = fields.Char(
+        string="Exclude Values",
+        help=(
+            "Comma-separated list of values in the Exclude Column that mark a "
+            "row as junk/duplicate to be discarded (e.g. 'Invalid,Mengulang'). "
+            "Leave empty together with Exclude Column to disable this feature."
+        ),
+    )
+
     # --- Separate-rows mode: combined datetime ---
 
     datetime_column = fields.Char(
@@ -260,3 +279,35 @@ class AttendanceMachineCsvMapping(
             "pipe": "|",
             "space": " ",
         }.get(self.delimiter, ",")
+
+    def _get_sign_value_tokens(self, direction):
+        """Return the list of Row Type Column values that identify a check-in
+        (direction='in') or check-out (direction='out') row in Separate Rows mode.
+
+        Each token is split on comma and stripped, but EMPTY tokens are kept:
+        a blank Row Type Column value is a legitimate sign-in/out label on some
+        machines, and today's exact-match behavior already relies on that (a
+        blank sign_in_value/sign_out_value matches a blank row value). A single
+        value without a comma yields exactly one token, so mappings configured
+        before this feature existed behave identically (zero regression).
+        """
+        self.ensure_one()
+        raw = self.sign_in_value if direction == "in" else self.sign_out_value
+        return [token.strip() for token in (raw or "").split(",")]
+
+    def _get_exclude_value_tokens(self):
+        """Return the list of Exclude Column values that mark a row as
+        junk/duplicate to be discarded before processing.
+
+        Unlike `_get_sign_value_tokens`, EMPTY tokens are discarded here, and
+        the feature is disabled (empty list) whenever Exclude Column or
+        Exclude Values is not configured. Without this, an Exclude Column
+        filled in with Exclude Values left empty would discard every row
+        whose column happens to be blank -- the majority of most files.
+        """
+        self.ensure_one()
+        if not self.exclude_column or not self.exclude_values:
+            return []
+        return [
+            token.strip() for token in self.exclude_values.split(",") if token.strip()
+        ]

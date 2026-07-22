@@ -240,17 +240,52 @@ class AttendanceMachineImportData(models.Model):
         rolled back on failure. Failures never raise out of the job: they are
         recorded on the line as state='error' instead, so the queue job
         itself always ends up 'done'.
+
+        `_run_process_attendance` returns True when it already resolved the
+        line itself (currently: excluded rows, written to state='ignored').
+        In that case the final unconditional state='done' write below must be
+        skipped, otherwise it would overwrite the 'ignored' state.
         """
         self.ensure_one()
         if self.state in ("done", "ignored"):
             return True
         try:
             with self.env.cr.savepoint():
-                self._run_process_attendance()
+                already_resolved = self._run_process_attendance()
         except Exception as error:  # pylint: disable=broad-except
             self.write({"state": "error", "error_message": str(error)})
             return True
+        if already_resolved:
+            return True
         self.write({"state": "done", "error_message": False})
+        return True
+
+    def _check_exclude(self, row, mapping):
+        """
+        Check whether this row must be discarded before processing, based on
+        the mapping's Exclude Column / Exclude Values. When it matches, the
+        line is written directly to state='ignored' with an auto-filled
+        ignore_reason, and attendance_id/hr.timesheet_attendance are never
+        touched. Returns True when the row was excluded, False otherwise.
+        """
+        self.ensure_one()
+        exclude_tokens = mapping._get_exclude_value_tokens()
+        if not exclude_tokens:
+            return False
+        value = str(row.get(mapping.exclude_column, "")).strip()
+        if value not in exclude_tokens:
+            return False
+        self.write(
+            {
+                "state": "ignored",
+                "ignore_reason": _(
+                    "Row excluded before processing: column '%s' has value "
+                    "'%s', which matches the Exclude Values configured on "
+                    "the CSV mapping."
+                )
+                % (mapping.exclude_column, value),
+            }
+        )
         return True
 
     def _run_process_attendance(  # noqa: C901
@@ -260,10 +295,15 @@ class AttendanceMachineImportData(models.Model):
         Parse the raw JSON data line and create or update an
         hr.timesheet_attendance record according to the machine's CSV mapping.
         Idempotent: if attendance_id is already set, skip to prevent duplicates on retry.
+
+        Returns True when the line was already resolved by this method itself
+        (currently: excluded rows written to state='ignored') so the caller
+        must not overwrite it with state='done'. Returns a falsy value for the
+        normal create/update-attendance path.
         """
         self.ensure_one()
         if self.attendance_id:
-            return
+            return False
         mapping = self._get_mapping()
         if not mapping:
             raise UserError(
@@ -289,6 +329,9 @@ Solution: Reload the import data from the source file, then retry the queue job"
                 )
                 % (self.import_id.name or str(self.import_id.id), self.sequence)
             )
+
+        if self._check_exclude(row, mapping):
+            return True
 
         employee_code = str(row.get(mapping.employee_column or "", "")).strip()
         employee = self._find_employee(employee_code)
@@ -372,7 +415,24 @@ Solution: Create or open a timesheet for this employee covering the date,
                 self.attendance_id = att.id
 
         elif mapping.row_mode == "separate":
-            row_type = str(row.get(mapping.row_type_column or "", "")).strip()
+            row_type_column = mapping.row_type_column or ""
+            if row_type_column not in row:
+                raise UserError(
+                    _(
+                        """
+Context: Processing attendance import data line
+Document: %s (sequence %s)
+Problem: Row Type Column '%s' is not present in the row data
+Solution: Verify the Row Type Column configured in the CSV mapping matches
+          an actual column name in the source file, then retry the queue job"""
+                    )
+                    % (
+                        self.import_id.name or str(self.import_id.id),
+                        self.sequence,
+                        row_type_column,
+                    )
+                )
+            row_type = str(row.get(row_type_column, "")).strip()
             dt_naive = self._extract_datetime_separate(row, mapping)
             if not dt_naive:
                 raise UserError(
@@ -390,7 +450,7 @@ Solution: Verify the datetime format in the CSV mapping matches the actual data,
             dt_utc = self._to_utc(dt_naive)
             att_date = dt_naive.date()
 
-            if row_type == (mapping.sign_in_value or "").strip():
+            if row_type in mapping._get_sign_value_tokens("in"):
                 sheet = self._find_sheet(employee, att_date)
                 if not sheet:
                     raise UserError(
@@ -427,7 +487,7 @@ Solution: Create or open a timesheet for this employee covering the date,
                     )
                     self.attendance_id = att.id
 
-            elif row_type == (mapping.sign_out_value or "").strip():
+            elif row_type in mapping._get_sign_value_tokens("out"):
                 # Check-out row: find the most recent open attendance for this
                 # employee on this date and set check_out
                 existing = Attendance.search(

@@ -26,6 +26,11 @@ Features:
 * Flexible CSV mapping with support for various file formats
 * Support for single-row and separate-row check-in/check-out formats
 * Support for combined and separate date/time fields
+* Support for multiple sign-in/sign-out values per direction in separate-row
+  mode (comma-separated), e.g. when a machine tags some check-ins/check-outs
+  with an extra overtime label
+* Discard junk/duplicate rows before processing via a configurable exclude
+  column and comma-separated exclude values on the CSV mapping
 * Import attendance data and create timesheet attendance records
 
 **Table of contents**
