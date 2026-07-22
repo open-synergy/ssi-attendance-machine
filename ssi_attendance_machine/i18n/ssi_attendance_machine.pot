@@ -206,6 +206,13 @@ msgid "# Machine"
 msgstr ""
 
 #. module: ssi_attendance_machine
+#: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine_csv_mapping__sheet_index
+msgid ""
+"0-based index of the worksheet to read when File Format = Excel. Ignored for"
+" CSV / Delimited Text files."
+msgstr ""
+
+#. module: ssi_attendance_machine
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine__message_needaction
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_csv_mapping__message_needaction
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import__message_needaction
@@ -406,6 +413,11 @@ msgstr ""
 #. module: ssi_attendance_machine
 #: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_import_view_form
 msgid "Attendances"
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: model:ir.model.fields.selection,name:ssi_attendance_machine.selection__attendance_machine_csv_mapping__file_format__csv
+msgid "CSV / Delimited Text"
 msgstr ""
 
 #. module: ssi_attendance_machine
@@ -877,6 +889,11 @@ msgid "Error Message"
 msgstr ""
 
 #. module: ssi_attendance_machine
+#: model:ir.model.fields.selection,name:ssi_attendance_machine.selection__attendance_machine_csv_mapping__file_format__excel
+msgid "Excel (.xls / .xlsx)"
+msgstr ""
+
+#. module: ssi_attendance_machine
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_csv_mapping__exclude_column
 msgid "Exclude Column"
 msgstr ""
@@ -892,6 +909,7 @@ msgid "Field delimiter used in the CSV file."
 msgstr ""
 
 #. module: ssi_attendance_machine
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_csv_mapping__file_format
 #: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_csv_mapping_view_form
 msgid "File Format"
 msgstr ""
@@ -946,6 +964,14 @@ msgstr ""
 #. module: ssi_attendance_machine
 #: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_csv_mapping_view_form
 msgid "Format Strings"
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine_csv_mapping__file_format
+msgid ""
+"Format of the attendance file to be imported.\n"
+"- CSV / Delimited Text: parsed using Encoding, Delimiter and Text Qualifier below.\n"
+"- Excel: parsed by worksheet using Sheet Index below; Encoding, Delimiter and Text Qualifier are ignored."
 msgstr ""
 
 #. module: ssi_attendance_machine
@@ -1516,6 +1542,17 @@ msgstr ""
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_employee__sequence
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import_data__sequence
 msgid "Sequence"
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_csv_mapping__sheet_index
+msgid "Sheet Index"
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: code:addons/ssi_attendance_machine/models/attendance_machine_csv_mapping.py:0
+#, python-format
+msgid "Sheet Index cannot be negative."
 msgstr ""
 
 #. module: ssi_attendance_machine
