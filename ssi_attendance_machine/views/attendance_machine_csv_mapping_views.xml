@@ -168,6 +168,14 @@
                         </group>
                     </group>
 
+                    <!-- Row exclusion -->
+                    <group string="Row Exclusion">
+                        <group>
+                            <field name="exclude_column" />
+                            <field name="exclude_values" />
+                        </group>
+                    </group>
+
                     <!-- Format strings -->
                     <group string="Format Strings">
                         <group>
