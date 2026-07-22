@@ -158,6 +158,15 @@ class AttendanceMachineImport(models.Model):  # pylint: disable=too-few-public-m
         compute_sudo=True,
         help="Number of import data lines excluded from the import.",
     )
+    attendance_count = fields.Integer(
+        string="# Attendances",
+        compute="_compute_attendance_count",
+        compute_sudo=True,
+        help="Number of unique attendance records created by this import. "
+        "Data lines pointing to the same attendance record (e.g. a "
+        "check-in and its matching check-out row in separate row mode) "
+        "are counted only once.",
+    )
 
     @api.depends("data_ids.state")
     def _compute_num_of_data(self):
@@ -172,6 +181,11 @@ class AttendanceMachineImport(models.Model):  # pylint: disable=too-few-public-m
             record.num_of_ignored = len(
                 record.data_ids.filtered(lambda d: d.state == "ignored")
             )
+
+    @api.depends("data_ids.attendance_id")
+    def _compute_attendance_count(self):
+        for record in self:
+            record.attendance_count = len(record.data_ids.mapped("attendance_id"))
 
     @api.constrains("attendance_file_hash")
     def _check_duplicate_file(self):
@@ -302,6 +316,24 @@ Solution: Check the existing import or use a different file"""
         self.ensure_one()
         for data_line in self._get_error_data():
             data_line.action_retry()
+
+    def action_open_attendances(self):
+        for record in self.sudo():
+            result = record._open_attendances()
+        return result
+
+    def _open_attendances(self):
+        self.ensure_one()
+        waction = self.env.ref(
+            "ssi_timesheet_attendance.hr_timesheet_attendance_action"
+        ).read()[0]
+        waction.update(
+            {
+                "domain": [("id", "in", self.data_ids.mapped("attendance_id").ids)],
+                "view_mode": "tree,form",
+            }
+        )
+        return waction
 
     def _get_error_data(self):
         self.ensure_one()

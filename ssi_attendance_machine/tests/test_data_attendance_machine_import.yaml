@@ -877,6 +877,14 @@ scenarios:
             type: "value"
             operator: "is_truthy"
 
+      - step: "Assert attendance_count on the import matches the single successful row"
+        action: "assert"
+        target: "machine_import"
+        asserts:
+          attendance_count:
+            type: "value"
+            expected: 1
+
   - name:
       "Attendance Machine Import - Separate mode sign-in creates attendance without
       check_out"
@@ -1075,3 +1083,205 @@ scenarios:
             type: "value"
             operator: "contains"
             expected: "NEW"
+
+  - name:
+      "Attendance Machine Import - Separate mode check-in/check-out pair dedups
+      attendance_count"
+    steps:
+      - step: "Create machine model"
+        action: "create"
+        model: "attendance_machine_model"
+        save_as: "machine_model"
+        values:
+          name: "Attendance Count Separate Test Model"
+          code: "BL18M1"
+
+      - step: "Create CSV mapping (separate row mode)"
+        action: "create"
+        model: "attendance_machine_csv_mapping"
+        save_as: "csv_mapping"
+        values:
+          name: "Attendance Count Separate Test CSV Mapping"
+          code: "BL18C1"
+          file_encoding: "utf-8"
+          delimiter: "comma"
+          row_mode: "separate"
+          datetime_mode: "combined"
+          employee_column: "employee_id"
+          row_type_column: "row_type"
+          sign_in_value: "IN"
+          sign_out_value: "OUT"
+          datetime_column: "datetime"
+          datetime_format: "%Y-%m-%d %H:%M:%S"
+
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "Attendance Count Separate Test Machine"
+          code: "BL18A1"
+          attendance_model_id: "EVAL: registry['machine_model'].id"
+          csv_mapping_id: "EVAL: registry['csv_mapping'].id"
+
+      - step: "Create employee"
+        action: "create"
+        model: "hr.employee"
+        save_as: "employee"
+        values:
+          name: "Attendance Count Separate Test Employee"
+
+      - step: "Register employee code on the machine"
+        action: "create"
+        model: "attendance_machine.employee"
+        save_as: "machine_employee"
+        values:
+          machine_id: "EVAL: registry['machine'].id"
+          employee_id: "EVAL: registry['employee'].id"
+          employee_code: "BL18EMP1"
+
+      - step: "Get working schedule"
+        action: "search"
+        model: "resource.calendar"
+        domain: []
+        save_as: "working_schedule"
+        limit: 1
+        order: "id asc"
+
+      - step: "Create timesheet (draft)"
+        action: "create"
+        model: "hr.timesheet"
+        save_as: "timesheet"
+        as_user: "base.user_admin"
+        values:
+          employee_id: "EVAL: registry['employee'].id"
+          date_start: 2026-03-01
+          date_end: 2026-03-31
+          working_schedule_id: "EVAL: registry['working_schedule'].id"
+
+      - step: "Open timesheet"
+        action: "call"
+        target: "timesheet"
+        method: "action_open"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-03-10"
+          machine_id: "EVAL: registry['machine'].id"
+
+      - step: "Create sign-in data line"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_in"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 1
+          data:
+            '{"employee_id": "BL18EMP1", "row_type": "IN", "datetime": "2026-03-10
+            08:00:00"}'
+
+      - step: "Create sign-out data line"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_out"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 2
+          data:
+            '{"employee_id": "BL18EMP1", "row_type": "OUT", "datetime": "2026-03-10
+            17:00:00"}'
+
+      - step: "Process the sign-in data line directly"
+        action: "call"
+        target: "data_line_in"
+        method: "_process_attendance"
+
+      - step: "Process the sign-out data line directly"
+        action: "call"
+        target: "data_line_out"
+        method: "_process_attendance"
+
+      - step: "Assert both data lines resolved to done"
+        action: "assert"
+        target: "data_line_in"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+          attendance_id:
+            type: "value"
+            operator: "is_truthy"
+
+      - step: "Assert sign-out data line resolved to done"
+        action: "assert"
+        target: "data_line_out"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+          attendance_id:
+            type: "value"
+            operator: "is_truthy"
+
+      - step:
+          "Assert attendance_count is deduped to 1, not 2, even though two data lines
+          are done"
+        action: "assert"
+        target: "machine_import"
+        asserts:
+          num_of_done:
+            type: "value"
+            expected: 2
+          attendance_count:
+            type: "value"
+            expected: 1
+
+  - name: "Attendance Machine Import - Unprocessed import has zero attendance_count"
+    steps:
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "Attendance Count Unprocessed Test Machine"
+          code: "BL18A2"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-03-11"
+          machine_id: "EVAL: registry['machine'].id"
+
+      - step: "Assert attendance_count is zero when data_ids is empty"
+        action: "assert"
+        target: "machine_import"
+        asserts:
+          attendance_count:
+            type: "value"
+            expected: 0
+
+      - step: "Create a data line still in draft, never processed"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_draft"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 1
+
+      - step: "Assert attendance_count stays zero with an unprocessed draft line"
+        action: "assert"
+        target: "machine_import"
+        asserts:
+          attendance_count:
+            type: "value"
+            expected: 0
