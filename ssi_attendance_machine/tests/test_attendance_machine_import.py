@@ -108,6 +108,103 @@ class TestAttendanceMachineImport(YamlTransactionCase):
         self.assertEqual(machine_import.state, "done")
         self.assertEqual(job.db_record().state, "done")
 
+    def test_action_open_attendances_returns_scoped_action_window(self):
+        """Python murni — pemicu P1 (L-01: action `call` YAML membuang nilai balik
+        method, sehingga dict `ir.actions.act_window` tak bisa di-assert dari YAML).
+
+        Memastikan `action_open_attendances` membuka `hr.timesheet_attendance`
+        dengan domain terbatas pada `attendance_id` unik milik dokumen ini saja.
+        """
+        machine = self.env["attendance_machine"].create(
+            {"name": "Open Attendances Action Test Machine", "code": "BL18PY01"}
+        )
+        machine_import = self.env["attendance_machine_import"].create(
+            {"date": "2026-03-12", "machine_id": machine.id}
+        )
+        employee = self.env["hr.employee"].create(
+            {"name": "Open Attendances Action Test Employee"}
+        )
+        working_schedule = self.env["resource.calendar"].search([], limit=1)
+        timesheet = (
+            self.env["hr.timesheet"]
+            .with_user(self.env.ref("base.user_admin"))
+            .create(
+                {
+                    "employee_id": employee.id,
+                    "date_start": "2026-03-01",
+                    "date_end": "2026-03-31",
+                    "working_schedule_id": working_schedule.id,
+                }
+            )
+        )
+        timesheet.with_user(self.env.ref("base.user_admin")).action_open()
+
+        attendance_1 = self.env["hr.timesheet_attendance"].create(
+            {
+                "employee_id": employee.id,
+                "date": "2026-03-12",
+                "check_in": "2026-03-12 08:00:00",
+                "sheet_id": timesheet.id,
+            }
+        )
+        attendance_2 = self.env["hr.timesheet_attendance"].create(
+            {
+                "employee_id": employee.id,
+                "date": "2026-03-13",
+                "check_in": "2026-03-13 08:00:00",
+                "sheet_id": timesheet.id,
+            }
+        )
+
+        # Another import's data line must never leak into this import's domain.
+        other_import = self.env["attendance_machine_import"].create(
+            {"date": "2026-03-14", "machine_id": machine.id}
+        )
+        other_attendance = self.env["hr.timesheet_attendance"].create(
+            {
+                "employee_id": employee.id,
+                "date": "2026-03-14",
+                "check_in": "2026-03-14 08:00:00",
+                "sheet_id": timesheet.id,
+            }
+        )
+        self.env["attendance_machine_import.data"].create(
+            {
+                "import_id": other_import.id,
+                "sequence": 1,
+                "state": "done",
+                "attendance_id": other_attendance.id,
+            }
+        )
+
+        self.env["attendance_machine_import.data"].create(
+            [
+                {
+                    "import_id": machine_import.id,
+                    "sequence": 1,
+                    "state": "done",
+                    "attendance_id": attendance_1.id,
+                },
+                {
+                    "import_id": machine_import.id,
+                    "sequence": 2,
+                    "state": "done",
+                    "attendance_id": attendance_2.id,
+                },
+            ]
+        )
+
+        action = machine_import.action_open_attendances()
+
+        self.assertEqual(action["res_model"], "hr.timesheet_attendance")
+        self.assertEqual(action["type"], "ir.actions.act_window")
+        self.assertEqual(action["view_mode"], "tree,form")
+        domain_field, operator, domain_ids = action["domain"][0]
+        self.assertEqual(domain_field, "id")
+        self.assertEqual(operator, "in")
+        self.assertEqual(set(domain_ids), {attendance_1.id, attendance_2.id})
+        self.assertNotIn(other_attendance.id, domain_ids)
+
     def test_prepare_attendance_vals_hook(self):
         machine = self.env["attendance_machine"].create(
             {"name": "Prepare Vals Hook Test Machine", "code": "BL0175PY01"}
