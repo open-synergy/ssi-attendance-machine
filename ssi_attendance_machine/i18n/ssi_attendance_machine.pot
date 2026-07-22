@@ -153,6 +153,11 @@ msgid ""
 msgstr ""
 
 #. module: ssi_attendance_machine
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import__attendance_count
+msgid "# Attendances"
+msgstr ""
+
+#. module: ssi_attendance_machine
 #: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import__num_of_data
 msgid "# Data"
 msgstr ""
@@ -384,6 +389,11 @@ msgstr ""
 #: model:ir.actions.act_window,name:ssi_attendance_machine.attendance_machine_action
 #: model:ir.ui.menu,name:ssi_attendance_machine.attendance_machine_menu
 msgid "Attendance Machines"
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_import_view_form
+msgid "Attendances"
 msgstr ""
 
 #. module: ssi_attendance_machine
@@ -1242,6 +1252,14 @@ msgstr ""
 #. module: ssi_attendance_machine
 #: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine_csv_mapping__offset_row
 msgid "Number of rows to skip from the top before starting to parse."
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine_import__attendance_count
+msgid ""
+"Number of unique attendance records created by this import. Data lines "
+"pointing to the same attendance record (e.g. a check-in and its matching "
+"check-out row in separate row mode) are counted only once."
 msgstr ""
 
 #. module: ssi_attendance_machine
