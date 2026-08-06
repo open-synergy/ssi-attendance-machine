@@ -15,6 +15,7 @@
     "application": False,
     "external_dependencies": {"python": ["xlrd"]},
     "depends": [
+        "web_tour",
         "ssi_web_widget_json",
         "ssi_master_data_mixin",
         "ssi_transaction_confirm_mixin",
@@ -66,6 +67,7 @@
         "views/attendance_machine_csv_mapping_views.xml",
         "views/attendance_machine_views.xml",
         "views/attendance_machine_import_views.xml",
+        "views/assets.xml",
     ],
     "demo": [
         "demo/attendance_machine_model_demo.xml",

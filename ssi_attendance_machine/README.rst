@@ -41,6 +41,25 @@ Features:
 .. contents::
    :local:
 
+Work Instruction
+================
+
+Attendance Machine Model
+-------------------------
+
+* `Create Attendance Machine Model
+  <docs/attendance_machine_model/01-create.html>`_
+* `Edit Attendance Machine Model
+  <docs/attendance_machine_model/02-edit.html>`_
+* `Delete Attendance Machine Model
+  <docs/attendance_machine_model/03-delete.html>`_
+* `Deactivate Attendance Machine Model
+  <docs/attendance_machine_model/04-deactivate.html>`_
+* `Activate Attendance Machine Model
+  <docs/attendance_machine_model/05-activate.html>`_
+* `Reset Code - Attendance Machine Model
+  <docs/attendance_machine_model/06-reset-code.html>`_
+
 Installation
 ============
 
