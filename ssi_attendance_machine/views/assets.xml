@@ -17,6 +17,10 @@
                 type="text/javascript"
                 src="/ssi_attendance_machine/static/tests/tours/attendance_machine_csv_mapping_tour.js"
             />
+        <script
+                type="text/javascript"
+                src="/ssi_attendance_machine/static/tests/tours/attendance_machine_tour.js"
+            />
     </xpath>
 </template>
 </odoo>

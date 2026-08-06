@@ -44,6 +44,22 @@ Features:
 Work Instruction
 ================
 
+Attendance Machine
+-------------------
+
+* `Create Attendance Machine
+  <docs/attendance_machine/01-create.html>`_
+* `Edit Attendance Machine
+  <docs/attendance_machine/02-edit.html>`_
+* `Delete Attendance Machine
+  <docs/attendance_machine/03-delete.html>`_
+* `Deactivate Attendance Machine
+  <docs/attendance_machine/04-deactivate.html>`_
+* `Activate Attendance Machine
+  <docs/attendance_machine/05-activate.html>`_
+* `Reset Code - Attendance Machine
+  <docs/attendance_machine/06-reset-code.html>`_
+
 Attendance Machine Model
 -------------------------
 
