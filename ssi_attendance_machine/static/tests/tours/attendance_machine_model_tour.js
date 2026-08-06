@@ -466,24 +466,23 @@ odoo.define("ssi_attendance_machine.attendance_machine_model_tour", function (re
                 run: "click",
             },
 
-            // ── Flow 3 — Click the Reset code button above the list
+            // ── Flow 3 — Click the Reset code button above the list. The
+            // action runs immediately: unlike form-header object buttons,
+            // the `confirm=` attribute on a <tree><header> button is not
+            // honored by the 14.0 web client, so no confirmation dialog
+            // is shown here.
             {
                 content: "Click the Reset code button",
                 trigger: "button[name='action_reset_code']:visible",
             },
 
-            // ── Flow 4 — Click OK on the confirmation dialog
+            // ── Post-Condition — the list is refreshed and the selection
+            // is cleared: the Reset code button (only rendered while a
+            // record is selected) no longer appears above the list, and
+            // no dialog was ever opened.
             {
-                content: 'Confirm the dialog ("Reset code. Are you sure?")',
-                trigger: ".modal-footer button.btn-primary",
-                in_modal: true,
-            },
-
-            // ── Post-Condition — dialog is closed and the list is
-            // rendered again
-            {
-                content: "Confirmation dialog is closed",
-                trigger: "body:not(:has(.modal))",
+                content: "Reset code button is no longer displayed",
+                trigger: ".o_list_buttons:not(:has(button[name='action_reset_code']))",
                 extra_trigger: ".o_list_view",
                 run: function () {
                     // Assertion only; do not trigger the default click
