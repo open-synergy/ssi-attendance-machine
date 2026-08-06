@@ -60,6 +60,22 @@ Attendance Machine Model
 * `Reset Code - Attendance Machine Model
   <docs/attendance_machine_model/06-reset-code.html>`_
 
+Attendance Machine CSV Mapping
+-------------------------------
+
+* `Create Attendance Machine CSV Mapping
+  <docs/attendance_machine_csv_mapping/01-create.html>`_
+* `Edit Attendance Machine CSV Mapping
+  <docs/attendance_machine_csv_mapping/02-edit.html>`_
+* `Delete Attendance Machine CSV Mapping
+  <docs/attendance_machine_csv_mapping/03-delete.html>`_
+* `Deactivate Attendance Machine CSV Mapping
+  <docs/attendance_machine_csv_mapping/04-deactivate.html>`_
+* `Activate Attendance Machine CSV Mapping
+  <docs/attendance_machine_csv_mapping/05-activate.html>`_
+* `Reset Code - Attendance Machine CSV Mapping
+  <docs/attendance_machine_csv_mapping/06-reset-code.html>`_
+
 Installation
 ============
 
