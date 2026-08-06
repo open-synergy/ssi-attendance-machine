@@ -38,30 +38,35 @@ class TestUiAttendanceMachineCsvMapping(HttpSavepointCase):
             {
                 "name": "TOUR-CSVMAP-EDIT",
                 "code": "/",
+                "employee_column": "emp_code",
             }
         )
         cls.mapping_delete = cls.env["attendance_machine_csv_mapping"].create(
             {
                 "name": "TOUR-CSVMAP-DELETE",
                 "code": "/",
+                "employee_column": "emp_code",
             }
         )
         cls.mapping_deactivate = cls.env["attendance_machine_csv_mapping"].create(
             {
                 "name": "TOUR-CSVMAP-DEACTIVATE",
                 "code": "/",
+                "employee_column": "emp_code",
             }
         )
         cls.mapping_activate = cls.env["attendance_machine_csv_mapping"].create(
             {
                 "name": "TOUR-CSVMAP-ACTIVATE",
                 "code": "/",
+                "employee_column": "emp_code",
                 "active": False,
             }
         )
         cls.mapping_reset_code = cls.env["attendance_machine_csv_mapping"].create(
             {
                 "name": "TOUR-CSVMAP-RESET-CODE",
+                "employee_column": "emp_code",
                 "code": "TOUR-CSVMAP-RESET-CODE-001",
             }
         )
