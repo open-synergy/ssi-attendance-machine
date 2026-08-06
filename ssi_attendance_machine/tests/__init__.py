@@ -4,3 +4,4 @@
 from . import test_attendance_machine
 from . import test_attendance_machine_import
 from . import test_ui_attendance_machine_model
+from . import test_ui_attendance_machine_csv_mapping
