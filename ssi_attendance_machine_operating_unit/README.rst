@@ -22,6 +22,11 @@ machine record can be scoped to an operating unit.
 .. contents::
    :local:
 
+Work Instruction
+================
+
+* `Attendance Machine Import <docs/attendance_machine_import/index.html>`_
+
 Installation
 ============
 

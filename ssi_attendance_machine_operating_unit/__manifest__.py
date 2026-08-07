@@ -16,10 +16,12 @@
         "ssi_operating_unit_mixin",
         "ssi_timesheet_attendance_operating_unit",
         "ssi_hr_employee_operating_unit",
+        "web_tour",
     ],
     "data": [
         "security/res_group/attendance_machine_import.xml",
         "security/ir_rule/attendance_machine_import.xml",
         "views/attendance_machine_import_views.xml",
+        "views/assets.xml",
     ],
 }
