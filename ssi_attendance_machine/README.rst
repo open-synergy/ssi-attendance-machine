@@ -92,6 +92,26 @@ Attendance Machine CSV Mapping
 * `Reset Code - Attendance Machine CSV Mapping
   <docs/attendance_machine_csv_mapping/06-reset-code.html>`_
 
+Attendance Machine Import
+---------------------------
+
+* `Create Attendance Machine Import
+  <docs/attendance_machine_import/01-create.html>`_
+* `Edit Attendance Machine Import
+  <docs/attendance_machine_import/02-edit.html>`_
+* `Delete Attendance Machine Import
+  <docs/attendance_machine_import/03-delete.html>`_
+* `Confirm Attendance Machine Import
+  <docs/attendance_machine_import/04-confirm.html>`_
+* `Approve Attendance Machine Import
+  <docs/attendance_machine_import/05-approve.html>`_
+* `Reject Attendance Machine Import
+  <docs/attendance_machine_import/06-reject.html>`_
+* `Reset Document Number - Attendance Machine Import
+  <docs/attendance_machine_import/13-reset-number.html>`_
+* `Restart Approval Process - Attendance Machine Import
+  <docs/attendance_machine_import/14-restart-approval.html>`_
+
 Installation
 ============
 
