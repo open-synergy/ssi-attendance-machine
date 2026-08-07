@@ -4,7 +4,7 @@
 
 {
     "name": "Attendance Machine",
-    "version": "14.0.2.12.0",
+    "version": "14.0.2.12.1",
     "website": "https://simetri-sinergi.id",
     "author": "OpenSynergy Indonesia, PT. Simetri Sinergi Indonesia",
     "contributors": [
