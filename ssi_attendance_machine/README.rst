@@ -107,10 +107,18 @@ Attendance Machine Import
   <docs/attendance_machine_import/05-approve.html>`_
 * `Reject Attendance Machine Import
   <docs/attendance_machine_import/06-reject.html>`_
+* `Finish Attendance Machine Import
+  <docs/attendance_machine_import/09-finish.html>`_
+* `Cancel Attendance Machine Import
+  <docs/attendance_machine_import/10-cancel.html>`_
+* `Restart Attendance Machine Import
+  <docs/attendance_machine_import/12-restart.html>`_
 * `Reset Document Number - Attendance Machine Import
   <docs/attendance_machine_import/13-reset-number.html>`_
 * `Restart Approval Process - Attendance Machine Import
   <docs/attendance_machine_import/14-restart-approval.html>`_
+* `Ignore All Errors - Attendance Machine Import
+  <docs/attendance_machine_import/15-ignore-all-errors.html>`_
 
 Installation
 ============
