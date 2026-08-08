@@ -21,6 +21,10 @@
                 type="text/javascript"
                 src="/ssi_attendance_machine/static/tests/tours/attendance_machine_tour.js"
             />
+        <script
+                type="text/javascript"
+                src="/ssi_attendance_machine/static/tests/tours/attendance_machine_import_tour.js"
+            />
     </xpath>
 </template>
 </odoo>
