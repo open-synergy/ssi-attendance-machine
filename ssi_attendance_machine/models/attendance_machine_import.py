@@ -172,6 +172,11 @@ class AttendanceMachineImport(models.Model):  # pylint: disable=too-few-public-m
 
     @api.depends("data_ids.state")
     def _compute_num_of_data(self):
+        """Count import data lines by outcome.
+
+        Sets ``num_of_data``, ``num_of_done``, ``num_of_error`` and
+        ``num_of_ignored`` from ``data_ids.state``.
+        """
         for record in self:
             record.num_of_data = len(record.data_ids)
             record.num_of_done = len(
@@ -186,11 +191,22 @@ class AttendanceMachineImport(models.Model):  # pylint: disable=too-few-public-m
 
     @api.depends("data_ids.attendance_id")
     def _compute_attendance_count(self):
+        """Count the distinct attendances produced by this import.
+
+        Data lines that point to the same ``attendance_id`` (e.g. a
+        check-in and its matching check-out row in Separate Rows mode)
+        are counted once.
+        """
         for record in self:
             record.attendance_count = len(record.data_ids.mapped("attendance_id"))
 
     @api.constrains("attendance_file_hash")
     def _check_duplicate_file(self):
+        """Reject a file already imported by another non-cancelled record.
+
+        Compares ``attendance_file_hash`` across records; raises
+        ``ValidationError`` when a duplicate is found.
+        """
         for record in self:
             if not record.attendance_file_hash:
                 continue
@@ -381,6 +397,12 @@ and that Sheet Index points to an existing worksheet
 
     @ssi_decorator.post_queue_done_action()
     def _01_process_attendance_data_on_queue_done(self):
+        """Enqueue one job per data line when the import reaches
+        ``queue_done``.
+
+        Each job calls ``_process_attendance`` on its data line and
+        stores the resulting job record on ``queue_job_id``.
+        """
         self.ensure_one()
         for data_line in self.data_ids:
             description = f"Process attendance import data line ID {data_line.id}"
@@ -393,6 +415,11 @@ and that Sheet Index points to an existing worksheet
 
     @ssi_decorator.post_queue_cancel_action()
     def _01_cancel_attendance_data_on_queue_cancel(self):
+        """Enqueue one job per completed data line when cancelling.
+
+        Only data lines that already produced an ``attendance_id`` are
+        queued; each job calls ``_cancel_attendance`` on its line.
+        """
         self.ensure_one()
         for data_line in self.data_ids.filtered(lambda d: d.attendance_id):
             description = f"Cancel attendance import data line ID {data_line.id}"
@@ -401,20 +428,39 @@ and that Sheet Index points to an existing worksheet
             )._cancel_attendance()
 
     def action_retry_all_error(self):
+        """Retry every errored data line of the selected imports.
+
+        Delegates to ``_retry_all_error`` under ``sudo`` so users
+        without direct write access to the data lines can still retry.
+        """
         for record in self.sudo():
             record._retry_all_error()
 
     def _retry_all_error(self):
+        """Call ``action_retry`` on each data line returned by
+        ``_get_error_data``.
+        """
         self.ensure_one()
         for data_line in self._get_error_data():
             data_line.action_retry()
 
     def action_open_attendances(self):
+        """Open the attendances created by the selected imports.
+
+        Delegates to ``_open_attendances`` under ``sudo``.
+
+        :return: an ``ir.actions.act_window`` dict
+        """
         for record in self.sudo():
             result = record._open_attendances()
         return result
 
     def _open_attendances(self):
+        """Build the window action listing this import's attendances.
+
+        :return: a copy of the ``hr.timesheet_attendance`` list action,
+            domained to ``data_ids.attendance_id``
+        """
         self.ensure_one()
         waction = self.env.ref(
             "ssi_timesheet_attendance.hr_timesheet_attendance_action"
@@ -428,24 +474,51 @@ and that Sheet Index points to an existing worksheet
         return waction
 
     def _get_error_data(self):
+        """Return the data lines currently in the ``error`` state.
+
+        :return: ``attendance_machine_import.data`` recordset
+        """
         self.ensure_one()
         return self.data_ids.filtered(lambda d: d.state == "error")
 
     def _get_unfinished_data(self):
+        """Return the data lines not yet resolved into an outcome.
+
+        :return: ``attendance_machine_import.data`` recordset in
+            ``draft`` or ``error`` state
+        """
         self.ensure_one()
         return self.data_ids.filtered(lambda d: d.state in ("draft", "error"))
 
     def _force_pending_queue_job_done(self):
+        """Force every non-``done`` job of this import to ``done``.
+
+        Used when the queue jobs finished but their ``queue.job``
+        record was not updated, so ``action_done`` is not blocked.
+        """
         self.ensure_one()
         for job in self.done_queue_job_ids.filtered(lambda j: j.state != "done"):
             job.button_done()
 
     def _recompute_queue_done_result(self):
+        """Re-run the ``queue_done`` batch and retry ``action_done``.
+
+        Extension point called after data lines are retried so the
+        import can transition out of ``queue_done`` once all lines
+        settle.
+        """
         self.ensure_one()
         self.done_queue_job_batch_id.enqueue()
         self._try_action_done()
 
     def _try_action_done(self):
+        """Move the import to ``done`` once every data line settled.
+
+        No-op unless the import is in ``queue_done`` with no line left
+        in ``draft``/``error``. Forces pending jobs to ``done`` first.
+
+        :return: ``True``
+        """
         self.ensure_one()
         if self.state != "queue_done":
             return True

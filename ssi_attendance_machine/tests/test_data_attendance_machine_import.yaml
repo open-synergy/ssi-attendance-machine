@@ -59,14 +59,10 @@ scenarios:
         context:
           bypass_policy_check: true
 
-      - step: "Invalidate cache after confirm"
-        action: "call"
-        target: "machine_import"
-        method: "invalidate_cache"
-
       - step: "Assert import is in confirm state"
         action: "assert"
         target: "machine_import"
+        refresh: true
         asserts:
           state:
             type: "value"

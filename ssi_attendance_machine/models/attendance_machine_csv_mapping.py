@@ -290,6 +290,11 @@ class AttendanceMachineCsvMapping(
 
     @api.constrains("offset_row", "offset_column", "sheet_index")
     def _check_offsets(self):
+        """Reject negative offsets.
+
+        Raises ``ValidationError`` when ``offset_row``,
+        ``offset_column`` or ``sheet_index`` is negative.
+        """
         for rec in self:
             if rec.offset_row < 0 or rec.offset_column < 0:
                 raise ValidationError(_("Offsets cannot be negative."))
@@ -297,6 +302,11 @@ class AttendanceMachineCsvMapping(
                 raise ValidationError(_("Sheet Index cannot be negative."))
 
     def _get_column_delimiter_character(self):
+        """Resolve the ``delimiter`` selection to its literal character.
+
+        :return: one of ``,``, ``;``, tab, ``|``, space; ``,`` if the
+            selection value is unrecognized
+        """
         self.ensure_one()
         return {
             "comma": ",",

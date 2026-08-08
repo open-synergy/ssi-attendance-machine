@@ -91,6 +91,11 @@ class AttendanceMachineImportData(models.Model):
     # -------------------------------------------------------------------------
 
     def _get_row_data(self):
+        """Decode ``data`` (raw JSON row) into a plain dict.
+
+        :return: dict of column name/index to cell value; empty dict
+            when ``data`` is empty or not valid JSON
+        """
         self.ensure_one()
         if not self.data:
             return {}
@@ -100,6 +105,11 @@ class AttendanceMachineImportData(models.Model):
             return {}
 
     def _get_mapping(self):
+        """Return the CSV mapping configured on this line's machine.
+
+        :return: ``attendance_machine_csv_mapping`` record, possibly
+            empty
+        """
         self.ensure_one()
         return self.import_id.machine_id.csv_mapping_id
 
@@ -291,15 +301,18 @@ class AttendanceMachineImportData(models.Model):
     def _run_process_attendance(  # noqa: C901
         self,
     ):  # pylint: disable=R0914,R0912,R0915,W8120
-        """
-        Parse the raw JSON data line and create or update an
-        hr.timesheet_attendance record according to the machine's CSV mapping.
-        Idempotent: if attendance_id is already set, skip to prevent duplicates on retry.
+        """Parse the row and create/update its ``hr.timesheet_attendance``.
 
-        Returns True when the line was already resolved by this method itself
-        (currently: excluded rows written to state='ignored') so the caller
-        must not overwrite it with state='done'. Returns a falsy value for the
-        normal create/update-attendance path.
+        Reads the raw JSON row data and applies the machine's CSV
+        mapping to build (or update) the linked attendance record.
+        Idempotent: if ``attendance_id`` is already set, does nothing,
+        so a retry never creates a duplicate.
+
+        :return: ``True`` when the line already resolved itself
+            (currently: excluded rows written to ``state='ignored'``),
+            meaning the caller must not overwrite it with
+            ``state='done'``; a falsy value for the normal
+            create/update-attendance path
         """
         self.ensure_one()
         if self.attendance_id:
@@ -536,24 +549,49 @@ Solution: Verify the check-in row was imported successfully for this
     # -------------------------------------------------------------------------
 
     def action_ignore(self):
+        """Ignore the selected data lines.
+
+        Delegates to ``_ignore`` under ``sudo``.
+        """
         for record in self.sudo():
             record._ignore()
 
     def action_retry(self):
+        """Retry processing the selected data lines.
+
+        Delegates to ``_retry`` under ``sudo``.
+        """
         for record in self.sudo():
             record._retry()
 
     def action_open_ignore_wizard(self):
+        """Open the wizard used to fill in the ignore reason.
+
+        Delegates to ``_open_ignore_wizard`` under ``sudo``.
+
+        :return: an ``ir.actions.act_window`` dict
+        """
         for record in self.sudo():
             result = record._open_ignore_wizard()
         return result
 
     def action_open_edit_data_wizard(self):
+        """Open the wizard used to edit this line's raw JSON data.
+
+        Delegates to ``_open_edit_data_wizard`` under ``sudo``.
+
+        :return: an ``ir.actions.act_window`` dict
+        """
         for record in self.sudo():
             result = record._open_edit_data_wizard()
         return result
 
     def _open_ignore_wizard(self):
+        """Build the window action for the ignore-reason wizard.
+
+        :return: a copy of the ignore wizard action, with
+            ``default_data_id`` set in its context to this record
+        """
         self.ensure_one()
         waction = self.env.ref(
             "ssi_attendance_machine.attendance_machine_import_data_ignore_action"
@@ -562,6 +600,11 @@ Solution: Verify the check-in row was imported successfully for this
         return waction
 
     def _open_edit_data_wizard(self):
+        """Build the window action for the edit-data wizard.
+
+        :return: a copy of the edit-data wizard action, with
+            ``default_data_id`` set in its context to this record
+        """
         self.ensure_one()
         waction = self.env.ref(
             "ssi_attendance_machine.attendance_machine_import_data_edit_action"
@@ -570,6 +613,13 @@ Solution: Verify the check-in row was imported successfully for this
         return waction
 
     def _ignore(self):
+        """Move the line to ``ignored`` after validating its state.
+
+        Raises ``UserError`` when the line is not in ``draft``/
+        ``error`` state, or when ``ignore_reason`` is empty. Also
+        forces the linked queue job to ``done`` and re-evaluates the
+        parent import's completion.
+        """
         self.ensure_one()
         if self.state not in ("draft", "error"):
             raise UserError(
@@ -602,12 +652,25 @@ Solution: Fill in the ignore reason before ignoring this line"""
         self.import_id._try_action_done()
 
     def _retry(self):
+        """Reset the line to ``draft`` and process it again.
+
+        Clears ``error_message``, calls ``_process_attendance``, then
+        re-evaluates the parent import's completion.
+        """
         self.ensure_one()
         self.write({"state": "draft", "error_message": False})
         self._process_attendance()
         self.import_id._try_action_done()
 
     def _force_queue_job_done(self):
+        """Force this line's queue job to ``done`` if not already.
+
+        Lines created before ``queue_job_id`` was tracked have no job
+        link here; those are swept up separately by the import's
+        ``_force_pending_queue_job_done``.
+
+        :return: ``True``
+        """
         self.ensure_one()
         if self.queue_job_id:
             if self.queue_job_id.state != "done":

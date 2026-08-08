@@ -58,16 +58,16 @@
         "data/base_automation_data.xml",
         # Menu
         "menu.xml",
-        # Wizards
-        "wizards/attendance_machine_import_ignore_views.xml",
-        "wizards/attendance_machine_import_data_ignore_views.xml",
-        "wizards/attendance_machine_import_data_edit_views.xml",
         # Views
         "views/attendance_machine_model_views.xml",
         "views/attendance_machine_csv_mapping_views.xml",
         "views/attendance_machine_views.xml",
         "views/attendance_machine_import_views.xml",
         "views/assets.xml",
+        # Wizards
+        "wizards/attendance_machine_import_ignore_views.xml",
+        "wizards/attendance_machine_import_data_ignore_views.xml",
+        "wizards/attendance_machine_import_data_edit_views.xml",
     ],
     "demo": [
         "demo/attendance_machine_model_demo.xml",
