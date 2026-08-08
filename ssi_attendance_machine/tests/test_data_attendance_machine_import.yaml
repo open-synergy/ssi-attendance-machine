@@ -1917,3 +1917,124 @@ scenarios:
           code: "BL25C2"
           employee_column: "employee_id"
           sheet_index: -1
+
+  - name: "Attendance Machine Import - Ignoring an error line without a reason raises"
+    steps:
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "Ignore Reason Test Machine"
+          code: "BL26A1"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-08-01"
+          machine_id: "REC: machine.id"
+
+      - step: "Create error data line without an ignore reason"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line"
+        values:
+          import_id: "REC: machine_import.id"
+          sequence: 1
+          state: "error"
+          error_message: "Sample error for ignore reason test"
+
+      - step: "Attempt to ignore the line without filling ignore_reason"
+        action: "call"
+        target: "data_line"
+        method: "action_ignore"
+        expect_error:
+          type: "UserError"
+
+  - name: "Attendance Machine Import - Edit-data wizard rejects a done line"
+    steps:
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "Edit Wizard Done Test Machine"
+          code: "BL26A2"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-08-02"
+          machine_id: "REC: machine.id"
+
+      - step: "Create a data line already resolved to done"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line"
+        values:
+          import_id: "REC: machine_import.id"
+          sequence: 1
+          state: "done"
+          data: '{"emp": "OLD"}'
+
+      - step: "Attempt to confirm the edit-data wizard on the done line"
+        action: "wizard"
+        model: "attendance_machine_import_data_edit"
+        target: "data_line"
+        values:
+          data: '{"emp": "NEW"}'
+        method: "action_confirm"
+        expect_error:
+          type: "UserError"
+
+  - name:
+      "Attendance Machine Import - Edit-data wizard rejects invalid JSON without writing"
+    steps:
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "Edit Wizard Invalid JSON Test Machine"
+          code: "BL26A3"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-08-03"
+          machine_id: "REC: machine.id"
+
+      - step: "Create an error data line with valid raw data"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line"
+        values:
+          import_id: "REC: machine_import.id"
+          sequence: 1
+          state: "error"
+          error_message: "Sample error"
+          data: '{"emp": "OLD"}'
+
+      - step: "Attempt to confirm the edit-data wizard with invalid JSON"
+        action: "wizard"
+        model: "attendance_machine_import_data_edit"
+        target: "data_line"
+        values:
+          data: "bukan json"
+        method: "action_confirm"
+        expect_error:
+          type: "UserError"
+
+      - step: "Assert the data line's raw data is unchanged after rejection"
+        action: "assert"
+        target: "data_line"
+        asserts:
+          data:
+            type: "value"
+            expected: '{"emp": "OLD"}'

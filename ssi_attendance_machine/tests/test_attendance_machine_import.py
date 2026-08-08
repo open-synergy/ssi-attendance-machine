@@ -21,73 +21,15 @@ class TestAttendanceMachineImport(YamlTransactionCase):
         """Run the ``attendance_machine_import`` YAML scenario."""
         self.run_yaml_scenario("test_data_attendance_machine_import.yaml")
 
-    def test_ignore_error_line_without_reason_raises(self):
-        """Ignoring an error line without ``ignore_reason`` raises."""
-        machine = self.env["attendance_machine"].create(
-            {"name": "Ignore Reason Test Machine", "code": "BL0127PY01"}
-        )
-        machine_import = self.env["attendance_machine_import"].create(
-            {"date": "2024-01-28", "machine_id": machine.id}
-        )
-        data_line = self.env["attendance_machine_import.data"].create(
-            {
-                "import_id": machine_import.id,
-                "sequence": 1,
-                "state": "error",
-                "error_message": "Sample error for ignore reason test",
-            }
-        )
-        with self.assertRaises(UserError):
-            data_line.action_ignore()
-
-    def test_edit_data_wizard_rejects_done_line(self):
-        """The edit-data wizard refuses to confirm on a ``done`` line."""
-        machine = self.env["attendance_machine"].create(
-            {"name": "Edit Wizard Done Test Machine", "code": "BL0129PY01"}
-        )
-        machine_import = self.env["attendance_machine_import"].create(
-            {"date": "2026-07-12", "machine_id": machine.id}
-        )
-        data_line = self.env["attendance_machine_import.data"].create(
-            {
-                "import_id": machine_import.id,
-                "sequence": 1,
-                "state": "done",
-                "data": '{"emp": "OLD"}',
-            }
-        )
-        wizard = self.env["attendance_machine_import_data_edit"].create(
-            {"data_id": data_line.id, "data": '{"emp": "NEW"}'}
-        )
-        with self.assertRaises(UserError):
-            wizard.action_confirm()
-
-    def test_edit_data_wizard_rejects_invalid_json(self):
-        """The edit-data wizard refuses to confirm invalid JSON data."""
-        machine = self.env["attendance_machine"].create(
-            {"name": "Edit Wizard Invalid JSON Test Machine", "code": "BL0129PY02"}
-        )
-        machine_import = self.env["attendance_machine_import"].create(
-            {"date": "2026-07-12", "machine_id": machine.id}
-        )
-        data_line = self.env["attendance_machine_import.data"].create(
-            {
-                "import_id": machine_import.id,
-                "sequence": 1,
-                "state": "error",
-                "error_message": "Sample error",
-                "data": '{"emp": "OLD"}',
-            }
-        )
-        wizard = self.env["attendance_machine_import_data_edit"].create(
-            {"data_id": data_line.id, "data": "bukan json"}
-        )
-        with self.assertRaises(UserError):
-            wizard.action_confirm()
-        self.assertEqual(data_line.data, '{"emp": "OLD"}')
-
     def test_failed_pending_job_does_not_block_import_done(self):
-        """A stale ``failed`` job is forced ``done`` so import completes."""
+        """A stale ``failed`` job is forced ``done`` so import completes.
+
+        Pure Python -- trigger P10 (L-09, L-10, L-11: the fixture
+        builds a ``queue.job.batch``, calls ``with_delay()`` on the
+        underscore-prefixed ``_process_attendance``, and writes
+        ``state`` through ``job.db_record()`` -- impossible to
+        express in a single ``EVAL:`` expression).
+        """
         machine = self.env["attendance_machine"].create(
             {"name": "BL-0185 Pending Job Test Machine", "code": "BL0185PY01"}
         )
@@ -304,7 +246,14 @@ class TestAttendanceMachineImport(YamlTransactionCase):
         self.assertEqual(no_column_mapping._get_exclude_value_tokens(), [])
 
     def test_prepare_attendance_vals_hook(self):
-        """``_prepare_attendance_vals`` returns the base contract keys."""
+        """``_prepare_attendance_vals`` returns the base contract keys.
+
+        Pure Python -- trigger P1 (L-01, L-02: the return value of
+        ``_prepare_attendance_vals`` is what is asserted, but
+        ``action: call`` discards return values and every YAML
+        assert's actual side is a dotted ``getattr`` on a registry
+        record).
+        """
         machine = self.env["attendance_machine"].create(
             {"name": "Prepare Vals Hook Test Machine", "code": "BL0175PY01"}
         )
