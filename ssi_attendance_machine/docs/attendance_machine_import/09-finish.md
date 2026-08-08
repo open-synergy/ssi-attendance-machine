@@ -17,7 +17,8 @@
 > `action_recompute_queue_done_result` (Recompute Queue Done Result),
 > `action_retry_all_error` (Retry All Errors), `action_retry` (Retry, on an Import Data
 > row), `action_open_ignore_wizard` (Ignore, on an Import Data row),
-> `action_open_edit_data_wizard` (Edit Data, on an Import Data row)
+> `action_open_edit_data_wizard` (Edit Data, on an Import Data row), `action_confirm`
+> (Confirm, on the Edit Data wizard), `action_confirm` (Confirm, on the Ignore wizard)
 
 ## Pre-Condition
 
