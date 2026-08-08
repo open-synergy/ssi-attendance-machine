@@ -16,6 +16,10 @@ class AttendanceMachineImportDataIgnore(models.TransientModel):
 
     @api.model
     def _default_data_id(self):
+        """Default ``data_id`` to the record the wizard was opened from.
+
+        :return: ``active_id`` from the context, or ``False``
+        """
         return self.env.context.get("active_id", False)
 
     data_id = fields.Many2one(
@@ -32,10 +36,20 @@ class AttendanceMachineImportDataIgnore(models.TransientModel):
     )
 
     def action_confirm(self):
+        """Ignore the data line with the given reason.
+
+        Delegates to ``_confirm`` under ``sudo``.
+        """
         for record in self.sudo():
             record._confirm()
 
     def _confirm(self):
+        """Write ``reason`` to ``data_id`` and ignore it.
+
+        Sets ``ignore_reason`` then calls ``action_ignore`` on
+        ``data_id``, which validates state and moves it to
+        ``ignored``.
+        """
         self.ensure_one()
         self.data_id.write({"ignore_reason": self.reason})
         self.data_id.action_ignore()

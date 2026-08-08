@@ -6,6 +6,12 @@ from odoo import models
 
 
 class AttendanceMachineImportData(models.Model):
+    """Propagate Operating Unit from employee to created attendances.
+
+    Overrides ``_prepare_attendance_vals`` so attendances created by
+    the import inherit the employee's operating unit.
+    """
+
     _name = "attendance_machine_import.data"
     _inherit = "attendance_machine_import.data"
 

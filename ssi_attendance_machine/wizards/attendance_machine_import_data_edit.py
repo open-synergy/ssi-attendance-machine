@@ -21,10 +21,19 @@ class AttendanceMachineImportDataEdit(models.TransientModel):
 
     @api.model
     def _default_data_id(self):
+        """Default ``data_id`` to the record the wizard was opened from.
+
+        :return: ``active_id`` from the context, or ``False``
+        """
         return self.env.context.get("active_id", False)
 
     @api.model
     def _default_data(self):
+        """Default ``data`` to the current raw JSON of ``data_id``.
+
+        :return: the data line's ``data`` value, or ``False`` when
+            ``_default_data_id`` resolves to nothing
+        """
         data_id = self._default_data_id()
         if not data_id:
             return False
@@ -46,10 +55,21 @@ class AttendanceMachineImportDataEdit(models.TransientModel):
     )
 
     def action_confirm(self):
+        """Apply the corrected raw data.
+
+        Delegates to ``_confirm`` under ``sudo``.
+        """
         for record in self.sudo():
             record._confirm()
 
     def _confirm(self):
+        """Validate and write the corrected raw data to ``data_id``.
+
+        Raises ``UserError`` when ``data_id`` is not in ``draft``/
+        ``error`` state, or when ``data`` is not a valid JSON object.
+        On success, writes the new ``data``, resets ``state`` to
+        ``draft`` and clears ``error_message``.
+        """
         self.ensure_one()
         if self.data_id.state not in ("draft", "error"):
             raise UserError(

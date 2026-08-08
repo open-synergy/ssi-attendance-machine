@@ -15,10 +15,14 @@ from odoo.tests import tagged
 
 @tagged("post_install", "-at_install")
 class TestAttendanceMachineImport(YamlTransactionCase):
+    """Cover the ``attendance_machine_import`` document and its lines."""
+
     def test_attendance_machine_import(self):
+        """Run the ``attendance_machine_import`` YAML scenario."""
         self.run_yaml_scenario("test_data_attendance_machine_import.yaml")
 
     def test_ignore_error_line_without_reason_raises(self):
+        """Ignoring an error line without ``ignore_reason`` raises."""
         machine = self.env["attendance_machine"].create(
             {"name": "Ignore Reason Test Machine", "code": "BL0127PY01"}
         )
@@ -37,6 +41,7 @@ class TestAttendanceMachineImport(YamlTransactionCase):
             data_line.action_ignore()
 
     def test_edit_data_wizard_rejects_done_line(self):
+        """The edit-data wizard refuses to confirm on a ``done`` line."""
         machine = self.env["attendance_machine"].create(
             {"name": "Edit Wizard Done Test Machine", "code": "BL0129PY01"}
         )
@@ -58,6 +63,7 @@ class TestAttendanceMachineImport(YamlTransactionCase):
             wizard.action_confirm()
 
     def test_edit_data_wizard_rejects_invalid_json(self):
+        """The edit-data wizard refuses to confirm invalid JSON data."""
         machine = self.env["attendance_machine"].create(
             {"name": "Edit Wizard Invalid JSON Test Machine", "code": "BL0129PY02"}
         )
@@ -81,6 +87,7 @@ class TestAttendanceMachineImport(YamlTransactionCase):
         self.assertEqual(data_line.data, '{"emp": "OLD"}')
 
     def test_failed_pending_job_does_not_block_import_done(self):
+        """A stale ``failed`` job is forced ``done`` so import completes."""
         machine = self.env["attendance_machine"].create(
             {"name": "BL-0185 Pending Job Test Machine", "code": "BL0185PY01"}
         )
@@ -297,6 +304,7 @@ class TestAttendanceMachineImport(YamlTransactionCase):
         self.assertEqual(no_column_mapping._get_exclude_value_tokens(), [])
 
     def test_prepare_attendance_vals_hook(self):
+        """``_prepare_attendance_vals`` returns the base contract keys."""
         machine = self.env["attendance_machine"].create(
             {"name": "Prepare Vals Hook Test Machine", "code": "BL0175PY01"}
         )
@@ -353,15 +361,20 @@ class TestAttendanceMachineImport(YamlTransactionCase):
         self.assertEqual(vals_with_checkout["check_out"], "2026-02-10 17:00:00")
 
     def test_excel_import_reads_xls_file(self):
-        """Python murni — pemicu P10 (fixture butuh membangun berkas biner
-        .xls sungguhan lalu meng-encode base64: mustahil dalam satu
-        ekspresi `EVAL:` YAML).
+        """Read an Excel attendance file through ``action_load_data``.
 
-        Membangun berkas `.xls` in-memory dengan `xlwt` (header + 3 baris,
-        termasuk satu sel kosong dan satu sel angka bulat), lalu
-        memverifikasi `action_load_data` membaca lewat jalur Excel: jumlah
-        `data_ids` sesuai jumlah baris data, sel kosong terbaca `""`, dan
-        sel angka bulat terbaca `"1499"` (bukan `"1499.0"`).
+        Pure Python -- trigger P10 (L-09, L-10, L-11: the fixture
+        builds a real binary ``.xls`` file with ``xlwt`` and
+        base64-encodes it, which the YAML ``EVAL:`` whitelist cannot
+        express -- no loops, no ``import``, so ``base64``/``xlwt`` are
+        out of reach).
+
+        Builds an in-memory ``.xls`` file (header + 3 rows, including
+        one blank cell and one whole-number cell), then verifies
+        ``action_load_data`` reads it through the Excel path: the
+        number of ``data_ids`` matches the row count, the blank cell
+        reads back as ``""``, and the whole-number cell reads back as
+        ``"1499"`` (not ``"1499.0"``).
         """
         book = xlwt.Workbook()
         sheet = book.add_sheet("Sheet1")
@@ -413,12 +426,15 @@ class TestAttendanceMachineImport(YamlTransactionCase):
         self.assertEqual(rows[2]["remark"], "")
 
     def test_excel_import_corrupt_file_raises_user_error(self):
-        """Python murni — pemicu P10 (fixture butuh byte biner acak yang
-        bukan `.xls`/`.xlsx` sah, mustahil diekspresikan sebagai `EVAL:`
-        di YAML tanpa Python sungguhan).
+        """A corrupt Excel file raises a structured ``UserError``.
 
-        Berkas rusak/bukan Excel dengan `file_format="excel"` melempar
-        `UserError` terstruktur, bukan traceback mentah dari `xlrd`.
+        Pure Python -- trigger P10 (L-09, L-10, L-11: the fixture
+        needs arbitrary binary bytes that are not a valid
+        ``.xls``/``.xlsx``, which the YAML ``EVAL:`` whitelist cannot
+        express without real Python).
+
+        A corrupt/non-Excel file with ``file_format="excel"`` raises a
+        structured ``UserError``, not a raw ``xlrd`` traceback.
         """
         mapping = self.env["attendance_machine_csv_mapping"].create(
             {
