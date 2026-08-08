@@ -4,7 +4,7 @@
 
 {
     "name": "Attendance Machine - Documenso Signing Integration",
-    "version": "14.0.1.0.1",
+    "version": "14.0.1.0.2",
     "website": "https://simetri-sinergi.id",
     "author": "OpenSynergy Indonesia, PT. Simetri Sinergi Indonesia",
     "contributors": [
