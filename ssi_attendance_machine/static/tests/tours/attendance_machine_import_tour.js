@@ -119,6 +119,24 @@ odoo.define("ssi_attendance_machine.attendance_machine_import_tour", function (
                 content: "Click Load Data",
                 trigger: ".o_form_view button[name='action_load_data']",
             },
+            {
+                // Action_load_data is a type="object" button: clicking it
+                // disables every form button until the implicit save (new
+                // record) + RPC + reload finishes (Odoo 14 core,
+                // form_controller.js _onButtonClicked -> _disableButtons /
+                // _enableButtons). The form also stays in edit mode the
+                // whole time (saveRecord is called with stayInEdit: true),
+                // so ".o_form_button_save" matches immediately -- but a
+                // click on it while still disabled never fires the click
+                // handler. Waiting for it to become enabled again is the
+                // real completion signal.
+                content: "Load Data call has completed",
+                trigger: ".o_form_button_save:not(:disabled)",
+                run: function () {
+                    // Assertion only; do not trigger the default click
+                    // action.
+                },
+            },
 
             // ── Flow 5 — Click Save
             {
@@ -193,6 +211,18 @@ odoo.define("ssi_attendance_machine.attendance_machine_import_tour", function (
                 {
                     content: "Click Load Data",
                     trigger: ".o_form_view button[name='action_load_data']",
+                },
+                {
+                    // Same completion signal as the create tour above --
+                    // see that step's comment for why waiting for
+                    // ".o_form_button_save:not(:disabled)" (rather than
+                    // assuming an immediate readonly switch) is required.
+                    content: "Load Data call has completed",
+                    trigger: ".o_form_button_save:not(:disabled)",
+                    run: function () {
+                        // Assertion only; do not trigger the default click
+                        // action.
+                    },
                 },
 
                 // ── Flow 5 — Click Save
@@ -432,6 +462,28 @@ odoo.define("ssi_attendance_machine.attendance_machine_import_tour", function (
                         "button[name='action_retry']:enabled",
                 },
                 {
+                    // Wait for the whole button_clicked cycle this row
+                    // click bubbled up to the FORM's own FormController to
+                    // finish (save + RPC + reload) before touching another
+                    // row. Odoo 14 core disables/re-enables
+                    // ".o_statusbar_buttons button, .oe_button_box button"
+                    // around EVERY type="object" click reaching
+                    // FormController._onButtonClicked -- including clicks
+                    // that originate from a one2many row -- regardless of
+                    // where the clicked button itself lives (list_renderer.js
+                    // never disables the row button). The "Attendances"
+                    // smart button is always rendered (no invisible attrs),
+                    // so it is a reliable universal proxy for "settled" here
+                    // and at every other gate below.
+                    content: "Retry call has completed",
+                    trigger:
+                        ".oe_button_box button[name='action_open_attendances']:enabled",
+                    run: function () {
+                        // Assertion only; do not trigger the default click
+                        // action.
+                    },
+                },
+                {
                     content: "Open Edit Data on the second error row",
                     trigger:
                         ".o_field_widget[name='data_ids'] .o_data_row:eq(2) " +
@@ -450,6 +502,19 @@ odoo.define("ssi_attendance_machine.attendance_machine_import_tour", function (
                 {
                     content: "Confirm the Edit Data wizard",
                     trigger: ".modal-footer button[name='action_confirm']",
+                },
+                {
+                    // Wait for the wizard to close AND the parent form's
+                    // data_ids list to have re-rendered before opening the
+                    // next row's wizard.
+                    content: "Edit Data wizard has closed",
+                    trigger:
+                        "body:not(:has(.modal)) " +
+                        ".o_field_widget[name='data_ids'] .o_data_row",
+                    run: function () {
+                        // Assertion only; do not trigger the default click
+                        // action.
+                    },
                 },
                 {
                     content: "Open Ignore on the third error row",
@@ -479,10 +544,34 @@ odoo.define("ssi_attendance_machine.attendance_machine_import_tour", function (
                     trigger: ".modal-footer button[name='action_confirm']",
                 },
                 {
+                    // Same settle as after the Edit Data wizard above.
+                    content: "Ignore wizard has closed",
+                    trigger:
+                        "body:not(:has(.modal)) " +
+                        ".o_field_widget[name='data_ids'] .o_data_row",
+                    run: function () {
+                        // Assertion only; do not trigger the default click
+                        // action.
+                    },
+                },
+                {
                     content: "Click Retry All Errors",
                     trigger:
                         "body:not(:has(.modal)) " +
                         ".o_form_view button[name='action_retry_all_error']:enabled",
+                },
+                {
+                    // Same universal settle signal as after Retry above --
+                    // action_retry_all_error is itself a plain body button
+                    // (never disabled by Odoo core either), so the smart
+                    // button proxy is the only reliable gate.
+                    content: "Retry All Errors call has completed",
+                    trigger:
+                        ".oe_button_box button[name='action_open_attendances']:enabled",
+                    run: function () {
+                        // Assertion only; do not trigger the default click
+                        // action.
+                    },
                 },
 
                 // ── Flow 5-6 — Queue Processing tab: Requeue and
@@ -500,7 +589,8 @@ odoo.define("ssi_attendance_machine.attendance_machine_import_tour", function (
                 },
                 {
                     content: "Requeue call has completed",
-                    trigger: "button[name='action_requeue_done']:enabled",
+                    trigger:
+                        ".oe_button_box button[name='action_open_attendances']:enabled",
                     run: function () {
                         // Assertion only; do not trigger the default click
                         // action.
@@ -517,6 +607,22 @@ odoo.define("ssi_attendance_machine.attendance_machine_import_tour", function (
                     content: "Confirm the dialog",
                     trigger: ".modal-footer button.btn-primary",
                     in_modal: true,
+                },
+                {
+                    // Wait for the Recompute RPC + reload to fully settle
+                    // before reading the statusbar -- the click itself only
+                    // closes the confirm dialog; the actual write + reload
+                    // happens after, and is the moment the Odoo 14 core
+                    // FieldWrapper race (CI failure this fixes) was
+                    // observed to hit if read too early.
+                    content: "Recompute call has completed",
+                    trigger:
+                        "body:not(:has(.modal)) " +
+                        ".oe_button_box button[name='action_open_attendances']:enabled",
+                    run: function () {
+                        // Assertion only; do not trigger the default click
+                        // action.
+                    },
                 },
 
                 // ── Post-Condition — Error rows remain unresolved (the
