@@ -1881,13 +1881,6 @@ msgid "comma (,)"
 msgstr ""
 
 #. module: ssi_attendance_machine
-#: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_import_data_edit_view_form
-#: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_import_data_ignore_view_form
-#: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_import_ignore_view_form
-msgid "or"
-msgstr ""
-
-#. module: ssi_attendance_machine
 #: model:ir.model.fields.selection,name:ssi_attendance_machine.selection__attendance_machine_csv_mapping__delimiter__pipe
 msgid "pipe (|)"
 msgstr ""
