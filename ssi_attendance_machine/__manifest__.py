@@ -62,10 +62,16 @@
         "views/attendance_machine_model_views.xml",
         "views/attendance_machine_csv_mapping_views.xml",
         "views/attendance_machine_views.xml",
-        "views/attendance_machine_import_views.xml",
         "views/assets.xml",
         # Wizards
+        # NOTE: attendance_machine_import_ignore_views.xml must load before
+        # views/attendance_machine_import_views.xml below: the latter's
+        # "Ignore All Errors" button references
+        # attendance_machine_import_ignore_action via "%(...)d", which Odoo
+        # resolves at data-load time, so the action record must already
+        # exist. Moving it after would break module installation.
         "wizards/attendance_machine_import_ignore_views.xml",
+        "views/attendance_machine_import_views.xml",
         "wizards/attendance_machine_import_data_ignore_views.xml",
         "wizards/attendance_machine_import_data_edit_views.xml",
     ],
