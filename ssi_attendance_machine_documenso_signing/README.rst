@@ -10,6 +10,12 @@ Glue module that adds Documenso digital signing support to the Attendance
 Machine Import document via ``mixin.documenso_signing_approval``.
 
 
+Work Instruction
+================
+
+* `Attendance Machine Import <docs/attendance_machine_import/index.html>`_
+
+
 Bug Tracker
 ===========
 
