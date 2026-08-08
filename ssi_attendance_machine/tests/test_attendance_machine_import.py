@@ -409,3 +409,76 @@ class TestAttendanceMachineImport(YamlTransactionCase):
 
         with self.assertRaises(UserError):
             machine_import.action_load_data()
+
+    def test_action_open_ignore_wizard_returns_scoped_action_window(self):
+        """``action_open_ignore_wizard`` returns a scoped act_window dict.
+
+        Pure Python -- trigger P1 (L-01, L-02: ``action: call`` YAML
+        discards the method's return value, and every YAML assert
+        target is a dotted ``getattr`` on a registry record, so the
+        ``ir.actions.act_window`` dict itself cannot be inspected from
+        YAML).
+
+        Builds a data line directly in ``error`` state, without
+        running ``action_load_data``, then asserts the wizard action
+        points at the ignore-reason wizard model, opens as a dialog,
+        and is pre-scoped to this data line via
+        ``context["default_data_id"]``.
+        """
+        machine = self.env["attendance_machine"].create(
+            {"name": "Open Ignore Wizard Test Machine", "code": "BL27PY01"}
+        )
+        machine_import = self.env["attendance_machine_import"].create(
+            {"date": "2026-08-06", "machine_id": machine.id}
+        )
+        data_line = self.env["attendance_machine_import.data"].create(
+            {
+                "import_id": machine_import.id,
+                "sequence": 1,
+                "state": "error",
+                "error_message": "Sample error for ignore wizard action test",
+            }
+        )
+
+        action = data_line.action_open_ignore_wizard()
+
+        self.assertEqual(action["res_model"], "attendance_machine_import_data_ignore")
+        self.assertEqual(action["target"], "new")
+        self.assertEqual(action["context"]["default_data_id"], data_line.id)
+
+    def test_action_open_edit_data_wizard_returns_scoped_action_window(self):
+        """``action_open_edit_data_wizard`` returns a scoped act_window.
+
+        Pure Python -- trigger P1 (L-01, L-02: ``action: call`` YAML
+        discards the method's return value, and every YAML assert
+        target is a dotted ``getattr`` on a registry record, so the
+        ``ir.actions.act_window`` dict itself cannot be inspected from
+        YAML).
+
+        Builds a data line directly in ``error`` state, without
+        running ``action_load_data``, then asserts the wizard action
+        points at the edit-data wizard model, opens as a dialog, and
+        is pre-scoped to this data line via
+        ``context["default_data_id"]``.
+        """
+        machine = self.env["attendance_machine"].create(
+            {"name": "Open Edit Data Wizard Test Machine", "code": "BL27PY02"}
+        )
+        machine_import = self.env["attendance_machine_import"].create(
+            {"date": "2026-08-07", "machine_id": machine.id}
+        )
+        data_line = self.env["attendance_machine_import.data"].create(
+            {
+                "import_id": machine_import.id,
+                "sequence": 1,
+                "state": "error",
+                "error_message": ("Sample error for edit data wizard action test"),
+                "data": '{"emp": "OLD"}',
+            }
+        )
+
+        action = data_line.action_open_edit_data_wizard()
+
+        self.assertEqual(action["res_model"], "attendance_machine_import_data_edit")
+        self.assertEqual(action["target"], "new")
+        self.assertEqual(action["context"]["default_data_id"], data_line.id)

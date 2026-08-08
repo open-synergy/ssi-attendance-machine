@@ -2038,3 +2038,185 @@ scenarios:
           data:
             type: "value"
             expected: '{"emp": "OLD"}'
+
+  - name:
+      "Attendance Machine Import - action_retry_all_error clears every error line at
+      once"
+    steps:
+      - step: "Create machine model"
+        action: "create"
+        model: "attendance_machine_model"
+        save_as: "machine_model"
+        values:
+          name: "Retry All Error Test Model"
+          code: "BL27M1"
+
+      - step: "Create CSV mapping"
+        action: "create"
+        model: "attendance_machine_csv_mapping"
+        save_as: "csv_mapping"
+        values:
+          name: "Retry All Error Test CSV Mapping"
+          code: "BL27C1"
+          file_encoding: "utf-8"
+          delimiter: "comma"
+          row_mode: "single"
+          datetime_mode: "combined"
+          employee_column: "employee_id"
+          check_in_column: "check_in"
+          check_out_column: "check_out"
+          datetime_format: "%Y-%m-%d %H:%M:%S"
+
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "Retry All Error Test Machine"
+          code: "BL27A1"
+          attendance_model_id: "REC: machine_model.id"
+          csv_mapping_id: "REC: csv_mapping.id"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-08-05"
+          machine_id: "REC: machine.id"
+
+      - step: "Create first employee"
+        action: "create"
+        model: "hr.employee"
+        save_as: "employee_one"
+        values:
+          name: "Retry All Error Test Employee One"
+
+      - step: "Register first employee code on the machine"
+        action: "create"
+        model: "attendance_machine.employee"
+        save_as: "machine_employee_one"
+        values:
+          machine_id: "REC: machine.id"
+          employee_id: "REC: employee_one.id"
+          employee_code: "BL27EMP1"
+
+      - step: "Create second employee"
+        action: "create"
+        model: "hr.employee"
+        save_as: "employee_two"
+        values:
+          name: "Retry All Error Test Employee Two"
+
+      - step: "Register second employee code on the machine"
+        action: "create"
+        model: "attendance_machine.employee"
+        save_as: "machine_employee_two"
+        values:
+          machine_id: "REC: machine.id"
+          employee_id: "REC: employee_two.id"
+          employee_code: "BL27EMP2"
+
+      - step: "Get working schedule"
+        action: "search"
+        model: "resource.calendar"
+        domain: []
+        save_as: "working_schedule"
+        limit: 1
+        order: "id asc"
+
+      - step: "Create timesheet for first employee (draft)"
+        action: "create"
+        model: "hr.timesheet"
+        save_as: "timesheet_one"
+        as_user: "base.user_admin"
+        values:
+          employee_id: "REC: employee_one.id"
+          date_start: 2026-08-01
+          date_end: 2026-08-31
+          working_schedule_id: "REC: working_schedule.id"
+
+      - step: "Open first timesheet"
+        action: "call"
+        target: "timesheet_one"
+        method: "action_open"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+
+      - step: "Create timesheet for second employee (draft)"
+        action: "create"
+        model: "hr.timesheet"
+        save_as: "timesheet_two"
+        as_user: "base.user_admin"
+        values:
+          employee_id: "REC: employee_two.id"
+          date_start: 2026-08-01
+          date_end: 2026-08-31
+          working_schedule_id: "REC: working_schedule.id"
+
+      - step: "Open second timesheet"
+        action: "call"
+        target: "timesheet_two"
+        method: "action_open"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+
+      - step: "Create first error data line directly, without action_load_data"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_one"
+        values:
+          import_id: "REC: machine_import.id"
+          sequence: 1
+          state: "error"
+          error_message: "Employee code was not yet registered"
+          data:
+            '{"employee_id": "BL27EMP1", "check_in": "2026-08-05 08:00:00", "check_out":
+            "2026-08-05 17:00:00"}'
+
+      - step: "Create second error data line directly, without action_load_data"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_two"
+        values:
+          import_id: "REC: machine_import.id"
+          sequence: 2
+          state: "error"
+          error_message: "Employee code was not yet registered"
+          data:
+            '{"employee_id": "BL27EMP2", "check_in": "2026-08-05 08:00:00", "check_out":
+            "2026-08-05 17:00:00"}'
+
+      - step: "Assert import starts with both lines counted as error"
+        action: "assert"
+        target: "machine_import"
+        asserts:
+          num_of_error:
+            type: "value"
+            expected: 2
+          num_of_done:
+            type: "value"
+            expected: 0
+
+      - step: "Retry every error line at once"
+        action: "call"
+        target: "machine_import"
+        method: "action_retry_all_error"
+
+      - step: "Assert every error line was resolved by the single retry-all call"
+        action: "assert"
+        target: "machine_import"
+        refresh: true
+        asserts:
+          num_of_error:
+            type: "value"
+            expected: 0
+          num_of_done:
+            type: "value"
+            expected: 2
