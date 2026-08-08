@@ -9,6 +9,8 @@
 > **Actor:** user in group _Attendance Machine Import — User_ (or above)
 >
 > **Requires:** `05-approve`
+>
+> **Inline Actions:** `action_confirm` (Confirm, on the Ignore All Errors wizard)
 
 ## Pre-Condition
 
