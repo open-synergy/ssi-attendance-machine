@@ -61,8 +61,15 @@ class TestUiAttendanceMachineImport(HttpSavepointCase):
         pending -- exactly what the ``queue_done``/``queue_cancel``
         pre-conditions need. Where a row's resulting **Done**/**Error**
         state matters (``09-finish``, ``10-cancel``, ``15-ignore-all``),
-        ``_seed_processed_line`` calls ``_process_attendance()`` directly
-        instead, bypassing the queue entirely.
+        ``_process_ignoring_error`` calls ``_process_attendance()``
+        directly instead, bypassing the queue entirely. Since issue
+        open-synergy/ssi-attendance-machine#51, ``_process_attendance()``
+        re-raises after recording the error on the line, so rows
+        deliberately seeded with an unregistered employee code (to end
+        up **Error**, for the Retry/Edit/Ignore tours) would otherwise
+        abort ``setUpClass`` -- ``_process_ignoring_error`` discards that
+        expected exception, keeping the resulting ``state``/
+        ``error_message`` already written on the line.
         """
         super().setUpClass()
         cls.admin = cls.env.ref("base.user_admin")
@@ -187,7 +194,7 @@ class TestUiAttendanceMachineImport(HttpSavepointCase):
             bypass_policy_check=True
         ).action_approve_approval()
         for line in (line_done, line_retry, line_edit, line_ignore):
-            line._process_attendance()
+            cls._process_ignoring_error(line)
 
         # ── 10-cancel ──────────────────────────────────────────────────
         # A single row is processed to Done and the document is forced to
@@ -207,7 +214,7 @@ class TestUiAttendanceMachineImport(HttpSavepointCase):
         cls.import_cancel.with_context(
             bypass_policy_check=True
         ).action_approve_approval()
-        line_cancel._process_attendance()
+        cls._process_ignoring_error(line_cancel)
         cls.import_cancel._try_action_done()
 
         # ── 12-restart ─────────────────────────────────────────────────
@@ -269,7 +276,7 @@ class TestUiAttendanceMachineImport(HttpSavepointCase):
             bypass_policy_check=True
         ).action_approve_approval()
         for line in (line_ignore_all_1, line_ignore_all_2):
-            line._process_attendance()
+            cls._process_ignoring_error(line)
 
     @classmethod
     def _create_machine(cls, name, with_mapping=False):
@@ -335,6 +342,28 @@ class TestUiAttendanceMachineImport(HttpSavepointCase):
                 ),
             }
         )
+
+    @classmethod
+    def _process_ignoring_error(cls, line):
+        """Call ``_process_attendance()``, tolerating an expected failure.
+
+        Since issue open-synergy/ssi-attendance-machine#51,
+        ``_process_attendance()`` re-raises after recording the error on
+        the line -- exactly what makes the real queue job end up
+        ``failed``. These fixtures deliberately process rows with an
+        unregistered employee code to seed an **Error** row for the
+        Retry/Edit/Ignore/Retry-All-Errors tours; the row already
+        carries the resulting ``state``/``error_message`` once
+        ``_process_attendance()`` returns or raises, so the exception
+        itself is discarded here rather than aborting ``setUpClass``.
+
+        :param line: ``attendance_machine_import.data`` record to
+            process
+        """
+        try:
+            line._process_attendance()
+        except Exception:  # pylint: disable=broad-except
+            pass
 
     def test_create(self):
         """Run the create tour for ``attendance_machine_import``.

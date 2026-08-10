@@ -133,6 +133,15 @@ scenarios:
 
   - name: "Attendance Machine Import - Unparseable row data raises UserError"
     steps:
+      - step: "Create CSV mapping"
+        action: "create"
+        model: "attendance_machine_csv_mapping"
+        save_as: "csv_mapping"
+        values:
+          name: "Unparseable Row Test CSV Mapping"
+          code: "BL51C01"
+          employee_column: "employee_id"
+
       - step: "Create attendance machine"
         action: "create"
         model: "attendance_machine"
@@ -140,6 +149,7 @@ scenarios:
         values:
           name: "Unparseable Row Test Machine"
           code: "BL51A01"
+          csv_mapping_id: "REC: csv_mapping.id"
 
       - step: "Create attendance machine import"
         action: "create"

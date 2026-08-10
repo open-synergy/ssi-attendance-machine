@@ -10,6 +10,7 @@ import pytz
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools import config
 
 _logger = logging.getLogger(__name__)
 
@@ -292,10 +293,21 @@ class AttendanceMachineImportData(models.Model):
         second cursor would deadlock against the first while trying to
         update the same row.
 
-        In test mode (``self.env.registry.in_test_mode()``) a second
-        cursor cannot see the not-yet-committed test data and its
-        commit would leak outside the test's rollback, so the write
-        happens on the current cursor instead.
+        In test mode a second cursor is a separate connection that
+        cannot see the current test transaction's not-yet-committed
+        rows, and its commit would leak outside the test's rollback,
+        so the write happens on the current cursor instead. Test mode
+        is detected as ``self.env.registry.in_test_mode() or
+        config['test_enable']``: ``in_test_mode()`` alone only reflects
+        ``HttpCase``'s ``TestCursor`` savepoint wrapping and stays
+        ``False`` for plain ``TransactionCase`` -- the base class
+        ``YamlTransactionCase`` and this module's own Python tests
+        actually use -- so it alone would miss most unit tests and
+        silently no-op the write against an invisible row.
+        ``config['test_enable']`` is the process-wide flag set by the
+        test runner (``--test-enable``/``--test-tags``) regardless of
+        which test base class is in use, so combining both catches
+        every test run while staying ``False`` in production.
 
         Never raises: any failure while recording the error is logged
         instead, so it does not mask the original exception being
@@ -305,7 +317,7 @@ class AttendanceMachineImportData(models.Model):
         """
         self.ensure_one()
         try:
-            if self.env.registry.in_test_mode():
+            if self.env.registry.in_test_mode() or config["test_enable"]:
                 self.write({"state": "error", "error_message": message})
                 return
             with self.pool.cursor() as new_cr:
