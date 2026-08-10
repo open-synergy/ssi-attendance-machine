@@ -435,6 +435,14 @@ odoo.define("ssi_attendance_machine.attendance_machine_import_tour", function (
     // the queue_done -> done transition is base.automation-driven, not a
     // click. See the test file's class docstring and Keputusan Desain,
     // issue open-synergy/ssi-attendance-machine#31.
+    //
+    // Retry/Retry All Errors only schedule their row(s) for reprocessing
+    // (state resets to Draft, queue job rescheduled to Pending) -- no job
+    // runner executes in this test environment, so the row's actual
+    // outcome (Done or Error again) never appears within the tour itself.
+    // Each Retry-related step below therefore only waits for the click's
+    // own RPC/reload cycle to settle, never for a row to resolve. See
+    // Keputusan Desain, issue open-synergy/ssi-attendance-machine#52.
     tour.register(
         "ssi_attendance_machine_attendance_machine_import_finish",
         {
@@ -452,10 +460,14 @@ odoo.define("ssi_attendance_machine.attendance_machine_import_tour", function (
                     trigger: ".o_notebook .nav-link:contains(Import Data)",
                 },
 
-                // ── Flow 4 — Resolve error rows via the row-level actions.
+                // ── Flow 4 — Act on error rows via the row-level actions.
                 // Rows are ordered by sequence: row 0 is already Done
                 // (hidden buttons), rows 1-3 are Error.
                 {
+                    // Only schedules the row for reprocessing (Draft +
+                    // queue job rescheduled to Pending) -- it does not
+                    // resolve the row itself, see the tour-level comment
+                    // above.
                     content: "Click Retry on the first error row",
                     trigger:
                         ".o_field_widget[name='data_ids'] .o_data_row:eq(1) " +
@@ -555,6 +567,9 @@ odoo.define("ssi_attendance_machine.attendance_machine_import_tour", function (
                     },
                 },
                 {
+                    // Same as the row-level Retry above: only schedules
+                    // every remaining Error row for reprocessing, it does
+                    // not resolve any of them within this tour.
                     content: "Click Retry All Errors",
                     trigger:
                         "body:not(:has(.modal)) " +
@@ -625,9 +640,12 @@ odoo.define("ssi_attendance_machine.attendance_machine_import_tour", function (
                     },
                 },
 
-                // ── Post-Condition — Error rows remain unresolved (the
-                // first row keeps failing on retry), so the document stays
-                // on Queue To Done.
+                // ── Post-Condition — Retry/Retry All Errors only
+                // rescheduled their rows (Draft + queue job Pending); no
+                // job runner executes in this test environment to settle
+                // them, and only one row was ever actually resolved
+                // (Ignore, synchronously). With unresolved rows still
+                // left, the document stays on Queue To Done.
                 {
                     content: "Status is still Queue To Done",
                     trigger:
