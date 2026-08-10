@@ -491,13 +491,18 @@ and that Sheet Index points to an existing worksheet
         return self.data_ids.filtered(lambda d: d.state in ("draft", "error"))
 
     def _force_pending_queue_job_done(self):
-        """Force every non-``done`` job of this import to ``done``.
+        """Force this import's still-scheduled jobs to ``done``.
 
-        Used when the queue jobs finished but their ``queue.job``
-        record was not updated, so ``action_done`` is not blocked.
+        Only touches jobs in a non-terminal state (``pending``,
+        ``enqueued``, ``started``) that finished processing but whose
+        ``queue.job`` record was not updated, so ``action_done`` is not
+        blocked. ``failed`` and ``cancelled`` jobs are left untouched:
+        forcing them to ``done`` would erase their failure trail.
         """
         self.ensure_one()
-        for job in self.done_queue_job_ids.filtered(lambda j: j.state != "done"):
+        for job in self.done_queue_job_ids.filtered(
+            lambda j: j.state in ("pending", "enqueued", "started")
+        ):
             job.button_done()
 
     def _recompute_queue_done_result(self):

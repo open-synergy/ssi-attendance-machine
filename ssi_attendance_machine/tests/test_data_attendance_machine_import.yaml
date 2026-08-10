@@ -123,60 +123,107 @@ scenarios:
             '{"employee_id": "UNKNOWN001", "check_in": "2024-01-15 08:00:00",
             "check_out": "2024-01-15 17:00:00"}'
 
-      - step: "Process attendance data line directly"
+      - step: "Process attendance data line directly, unregistered employee"
         action: "call"
         target: "data_line"
         method: "_process_attendance"
+        expect_error:
+          type: "UserError"
+          message_contains: "not registered"
 
-      - step: "Assert data line is in error state"
+  - name: "Attendance Machine Import - Unparseable row data raises UserError"
+    steps:
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "Unparseable Row Test Machine"
+          code: "BL51A01"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-08-10"
+          machine_id: "REC: machine.id"
+
+      - step: "Create data line whose raw data is not valid JSON"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line"
+        values:
+          import_id: "REC: machine_import.id"
+          sequence: 1
+          data: "not valid json"
+
+      - step: "Process attendance data line directly, expect parse failure"
+        action: "call"
+        target: "data_line"
+        method: "_process_attendance"
+        expect_error:
+          type: "UserError"
+          message_contains: "not valid JSON"
+
+  - name:
+      "Attendance Machine Import - Error recorded via _record_error_in_new_cursor
+      persists state and message"
+    steps:
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "Record Error Test Machine"
+          code: "BL51A02"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-08-10"
+          machine_id: "REC: machine.id"
+
+      - step: "Create a draft data line"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line"
+        values:
+          import_id: "REC: machine_import.id"
+          sequence: 1
+
+      - step:
+          "Record an error directly through the helper _process_attendance calls from
+          its except block"
+        action: "call"
+        target: "data_line"
+        method: "_record_error_in_new_cursor"
+        args:
+          - "Sample error recorded outside the job transaction"
+
+      - step: "Assert the line kept state=error with the message filled in"
         action: "assert"
         target: "data_line"
+        refresh: true
         asserts:
           state:
             type: "value"
             expected: "error"
           error_message:
             type: "value"
-            operator: "is_truthy"
-          attendance_id:
-            type: "value"
-            operator: "is_falsy"
+            expected: "Sample error recorded outside the job transaction"
 
   - name: "Attendance Machine Import - Ignore line with reason"
     steps:
-      - step: "Create machine model"
-        action: "create"
-        model: "attendance_machine_model"
-        save_as: "machine_model"
-        values:
-          name: "Ignore Line Test Model"
-          code: "BL0127M2"
-
-      - step: "Create CSV mapping"
-        action: "create"
-        model: "attendance_machine_csv_mapping"
-        save_as: "csv_mapping"
-        values:
-          name: "Ignore Line Test CSV Mapping"
-          code: "BL0127C2"
-          file_encoding: "utf-8"
-          delimiter: "comma"
-          row_mode: "single"
-          datetime_mode: "combined"
-          employee_column: "employee_id"
-          check_in_column: "check_in"
-          check_out_column: "check_out"
-          datetime_format: "%Y-%m-%d %H:%M:%S"
-
-      - step: "Create attendance machine without registered employees"
+      - step: "Create attendance machine"
         action: "create"
         model: "attendance_machine"
         save_as: "machine"
         values:
           name: "Ignore Line Test Machine"
           code: "BL0127A2"
-          attendance_model_id: "EVAL: registry['machine_model'].id"
-          csv_mapping_id: "EVAL: registry['csv_mapping'].id"
 
       - step: "Create attendance machine import"
         action: "create"
@@ -184,31 +231,17 @@ scenarios:
         save_as: "machine_import"
         values:
           date: "2024-01-16"
-          machine_id: "EVAL: registry['machine'].id"
+          machine_id: "REC: machine.id"
 
-      - step: "Create data line with unregistered employee code"
+      - step: "Create an error data line, unregistered employee code"
         action: "create"
         model: "attendance_machine_import.data"
         save_as: "data_line"
         values:
-          import_id: "EVAL: registry['machine_import'].id"
+          import_id: "REC: machine_import.id"
           sequence: 1
-          data:
-            '{"employee_id": "UNKNOWN002", "check_in": "2024-01-16 08:00:00",
-            "check_out": "2024-01-16 17:00:00"}'
-
-      - step: "Process attendance data line directly"
-        action: "call"
-        target: "data_line"
-        method: "_process_attendance"
-
-      - step: "Assert data line is in error state"
-        action: "assert"
-        target: "data_line"
-        asserts:
-          state:
-            type: "value"
-            expected: "error"
+          state: "error"
+          error_message: "Employee code 'UNKNOWN002' is not registered"
 
       - step: "Fill in ignore reason"
         action: "write"
@@ -225,41 +258,17 @@ scenarios:
             type: "value"
             expected: "ignored"
 
-  - name: "Attendance Machine Import - Retry resolves error line"
+  - name:
+      "Attendance Machine Import - Retry reschedules an error line through the queue
+      instead of processing it inline"
     steps:
-      - step: "Create machine model"
-        action: "create"
-        model: "attendance_machine_model"
-        save_as: "machine_model"
-        values:
-          name: "Retry Line Test Model"
-          code: "BL0127M3"
-
-      - step: "Create CSV mapping"
-        action: "create"
-        model: "attendance_machine_csv_mapping"
-        save_as: "csv_mapping"
-        values:
-          name: "Retry Line Test CSV Mapping"
-          code: "BL0127C3"
-          file_encoding: "utf-8"
-          delimiter: "comma"
-          row_mode: "single"
-          datetime_mode: "combined"
-          employee_column: "employee_id"
-          check_in_column: "check_in"
-          check_out_column: "check_out"
-          datetime_format: "%Y-%m-%d %H:%M:%S"
-
-      - step: "Create attendance machine without registered employees"
+      - step: "Create attendance machine"
         action: "create"
         model: "attendance_machine"
         save_as: "machine"
         values:
           name: "Retry Line Test Machine"
           code: "BL0127A3"
-          attendance_model_id: "EVAL: registry['machine_model'].id"
-          csv_mapping_id: "EVAL: registry['csv_mapping'].id"
 
       - step: "Create attendance machine import"
         action: "create"
@@ -267,92 +276,45 @@ scenarios:
         save_as: "machine_import"
         values:
           date: "2024-01-20"
-          machine_id: "EVAL: registry['machine'].id"
+          machine_id: "REC: machine.id"
 
-      - step: "Create data line before employee is registered"
+      - step: "Create an error data line without a linked queue job"
         action: "create"
         model: "attendance_machine_import.data"
         save_as: "data_line"
         values:
-          import_id: "EVAL: registry['machine_import'].id"
+          import_id: "REC: machine_import.id"
           sequence: 1
-          data:
-            '{"employee_id": "EMP003", "check_in": "2024-01-20 08:00:00", "check_out":
-            "2024-01-20 17:00:00"}'
-
-      - step: "Process attendance data line directly, expect error"
-        action: "call"
-        target: "data_line"
-        method: "_process_attendance"
-
-      - step: "Assert data line is in error state"
-        action: "assert"
-        target: "data_line"
-        asserts:
-          state:
-            type: "value"
-            expected: "error"
-
-      - step: "Create employee"
-        action: "create"
-        model: "hr.employee"
-        save_as: "employee"
-        values:
-          name: "Test Employee Retry"
-
-      - step: "Register employee code on the machine"
-        action: "create"
-        model: "attendance_machine.employee"
-        save_as: "machine_employee"
-        values:
-          machine_id: "EVAL: registry['machine'].id"
-          employee_id: "EVAL: registry['employee'].id"
-          employee_code: "EMP003"
-
-      - step: "Get working schedule"
-        action: "search"
-        model: "resource.calendar"
-        domain: []
-        save_as: "working_schedule"
-        limit: 1
-        order: "id asc"
-
-      - step: "Create timesheet (draft)"
-        action: "create"
-        model: "hr.timesheet"
-        save_as: "timesheet"
-        as_user: "base.user_admin"
-        values:
-          employee_id: "EVAL: registry['employee'].id"
-          date_start: 2024-01-01
-          date_end: 2024-01-31
-          working_schedule_id: "EVAL: registry['working_schedule'].id"
-
-      - step: "Open timesheet"
-        action: "call"
-        target: "timesheet"
-        method: "action_open"
-        as_user: "base.user_admin"
-        asserts:
-          state:
-            type: "value"
-            expected: "open"
+          state: "error"
+          error_message: "Employee code 'EMP003' is not registered"
 
       - step: "Retry the error line"
         action: "call"
         target: "data_line"
         method: "action_retry"
 
-      - step: "Assert data line resolved to done"
+      - step:
+          "Assert the line is reset to draft and rescheduled through a new pending queue
+          job, not processed inline"
         action: "assert"
         target: "data_line"
+        refresh: true
         asserts:
           state:
             type: "value"
-            expected: "done"
+            expected: "draft"
+          error_message:
+            type: "value"
+            operator: "is_falsy"
           attendance_id:
             type: "value"
+            operator: "is_falsy"
+          queue_job_id:
+            type: "value"
             operator: "is_truthy"
+          queue_job_id.state:
+            type: "value"
+            expected: "pending"
 
   - name: "Attendance Machine Import - Auto done when all lines resolved"
     steps:
@@ -1861,27 +1823,15 @@ scenarios:
           sequence: 1
           data: '{"employee_id": "BL24EMP1", "status": "C/Masuk"}'
 
-      - step: "Process attendance data line directly"
+      - step:
+          "Process attendance data line directly, expect it to fail mentioning the
+          missing column instead of matching a blank check-in"
         action: "call"
         target: "data_line"
         method: "_process_attendance"
-
-      - step:
-          "Assert data line errored out, mentioning the missing column, instead of
-          matching a blank check-in"
-        action: "assert"
-        target: "data_line"
-        asserts:
-          state:
-            type: "value"
-            expected: "error"
-          error_message:
-            type: "value"
-            operator: "contains"
-            expected: "status_baru"
-          attendance_id:
-            type: "value"
-            operator: "is_falsy"
+        expect_error:
+          type: "UserError"
+          message_contains: "status_baru"
 
   - name: "Attendance Machine CSV Mapping - file_format/sheet_index default to CSV"
     steps:
@@ -2040,33 +1990,9 @@ scenarios:
             expected: '{"emp": "OLD"}'
 
   - name:
-      "Attendance Machine Import - action_retry_all_error clears every error line at
-      once"
+      "Attendance Machine Import - action_retry_all_error reschedules every error line
+      through the queue at once"
     steps:
-      - step: "Create machine model"
-        action: "create"
-        model: "attendance_machine_model"
-        save_as: "machine_model"
-        values:
-          name: "Retry All Error Test Model"
-          code: "BL27M1"
-
-      - step: "Create CSV mapping"
-        action: "create"
-        model: "attendance_machine_csv_mapping"
-        save_as: "csv_mapping"
-        values:
-          name: "Retry All Error Test CSV Mapping"
-          code: "BL27C1"
-          file_encoding: "utf-8"
-          delimiter: "comma"
-          row_mode: "single"
-          datetime_mode: "combined"
-          employee_column: "employee_id"
-          check_in_column: "check_in"
-          check_out_column: "check_out"
-          datetime_format: "%Y-%m-%d %H:%M:%S"
-
       - step: "Create attendance machine"
         action: "create"
         model: "attendance_machine"
@@ -2074,8 +2000,6 @@ scenarios:
         values:
           name: "Retry All Error Test Machine"
           code: "BL27A1"
-          attendance_model_id: "REC: machine_model.id"
-          csv_mapping_id: "REC: csv_mapping.id"
 
       - step: "Create attendance machine import"
         action: "create"
@@ -2084,88 +2008,6 @@ scenarios:
         values:
           date: "2026-08-05"
           machine_id: "REC: machine.id"
-
-      - step: "Create first employee"
-        action: "create"
-        model: "hr.employee"
-        save_as: "employee_one"
-        values:
-          name: "Retry All Error Test Employee One"
-
-      - step: "Register first employee code on the machine"
-        action: "create"
-        model: "attendance_machine.employee"
-        save_as: "machine_employee_one"
-        values:
-          machine_id: "REC: machine.id"
-          employee_id: "REC: employee_one.id"
-          employee_code: "BL27EMP1"
-
-      - step: "Create second employee"
-        action: "create"
-        model: "hr.employee"
-        save_as: "employee_two"
-        values:
-          name: "Retry All Error Test Employee Two"
-
-      - step: "Register second employee code on the machine"
-        action: "create"
-        model: "attendance_machine.employee"
-        save_as: "machine_employee_two"
-        values:
-          machine_id: "REC: machine.id"
-          employee_id: "REC: employee_two.id"
-          employee_code: "BL27EMP2"
-
-      - step: "Get working schedule"
-        action: "search"
-        model: "resource.calendar"
-        domain: []
-        save_as: "working_schedule"
-        limit: 1
-        order: "id asc"
-
-      - step: "Create timesheet for first employee (draft)"
-        action: "create"
-        model: "hr.timesheet"
-        save_as: "timesheet_one"
-        as_user: "base.user_admin"
-        values:
-          employee_id: "REC: employee_one.id"
-          date_start: 2026-08-01
-          date_end: 2026-08-31
-          working_schedule_id: "REC: working_schedule.id"
-
-      - step: "Open first timesheet"
-        action: "call"
-        target: "timesheet_one"
-        method: "action_open"
-        as_user: "base.user_admin"
-        asserts:
-          state:
-            type: "value"
-            expected: "open"
-
-      - step: "Create timesheet for second employee (draft)"
-        action: "create"
-        model: "hr.timesheet"
-        save_as: "timesheet_two"
-        as_user: "base.user_admin"
-        values:
-          employee_id: "REC: employee_two.id"
-          date_start: 2026-08-01
-          date_end: 2026-08-31
-          working_schedule_id: "REC: working_schedule.id"
-
-      - step: "Open second timesheet"
-        action: "call"
-        target: "timesheet_two"
-        method: "action_open"
-        as_user: "base.user_admin"
-        asserts:
-          state:
-            type: "value"
-            expected: "open"
 
       - step: "Create first error data line directly, without action_load_data"
         action: "create"
@@ -2176,9 +2018,6 @@ scenarios:
           sequence: 1
           state: "error"
           error_message: "Employee code was not yet registered"
-          data:
-            '{"employee_id": "BL27EMP1", "check_in": "2026-08-05 08:00:00", "check_out":
-            "2026-08-05 17:00:00"}'
 
       - step: "Create second error data line directly, without action_load_data"
         action: "create"
@@ -2189,9 +2028,6 @@ scenarios:
           sequence: 2
           state: "error"
           error_message: "Employee code was not yet registered"
-          data:
-            '{"employee_id": "BL27EMP2", "check_in": "2026-08-05 08:00:00", "check_out":
-            "2026-08-05 17:00:00"}'
 
       - step: "Assert import starts with both lines counted as error"
         action: "assert"
@@ -2209,7 +2045,9 @@ scenarios:
         target: "machine_import"
         method: "action_retry_all_error"
 
-      - step: "Assert every error line was resolved by the single retry-all call"
+      - step:
+          "Assert every error line was reset to draft and rescheduled through the queue,
+          not processed inline"
         action: "assert"
         target: "machine_import"
         refresh: true
@@ -2219,4 +2057,28 @@ scenarios:
             expected: 0
           num_of_done:
             type: "value"
-            expected: 2
+            expected: 0
+
+      - step: "Assert first line rescheduled with a pending queue job"
+        action: "assert"
+        target: "data_line_one"
+        refresh: true
+        asserts:
+          state:
+            type: "value"
+            expected: "draft"
+          queue_job_id.state:
+            type: "value"
+            expected: "pending"
+
+      - step: "Assert second line rescheduled with a pending queue job"
+        action: "assert"
+        target: "data_line_two"
+        refresh: true
+        asserts:
+          state:
+            type: "value"
+            expected: "draft"
+          queue_job_id.state:
+            type: "value"
+            expected: "pending"

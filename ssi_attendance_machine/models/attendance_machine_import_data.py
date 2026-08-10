@@ -3,12 +3,15 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 import json
+import logging
 from datetime import datetime
 
 import pytz
 
-from odoo import _, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+
+_logger = logging.getLogger(__name__)
 
 
 class AttendanceMachineImportData(models.Model):
@@ -247,14 +250,19 @@ class AttendanceMachineImportData(models.Model):
         """
         Entry point called by the queue job. Runs the actual conversion
         inside a savepoint so that any partially created attendance record is
-        rolled back on failure. Failures never raise out of the job: they are
-        recorded on the line as state='error' instead, so the queue job
-        itself always ends up 'done'.
+        rolled back on failure. Failures are recorded on the line as
+        state='error' (through ``_record_error_in_new_cursor``, so the
+        write survives the job runner's rollback) and then re-raised, so
+        the queue job itself ends up 'failed' and its failure is visible
+        on the ``queue.job`` record.
 
         `_run_process_attendance` returns True when it already resolved the
         line itself (currently: excluded rows, written to state='ignored').
         In that case the final unconditional state='done' write below must be
         skipped, otherwise it would overwrite the 'ignored' state.
+
+        :raises Exception: the original exception raised while processing
+            the row, after the error has been recorded on the line
         """
         self.ensure_one()
         if self.state in ("done", "ignored"):
@@ -263,12 +271,50 @@ class AttendanceMachineImportData(models.Model):
             with self.env.cr.savepoint():
                 already_resolved = self._run_process_attendance()
         except Exception as error:  # pylint: disable=broad-except
-            self.write({"state": "error", "error_message": str(error)})
-            return True
+            self._record_error_in_new_cursor(str(error))
+            raise
         if already_resolved:
             return True
         self.write({"state": "done", "error_message": False})
         return True
+
+    def _record_error_in_new_cursor(self, message):
+        """Persist the failure on this line, surviving the job rollback.
+
+        The queue_job runner rolls back the job's own transaction when
+        an exception escapes ``_process_attendance``, so a plain
+        ``write()`` here would be lost. This opens a fresh cursor from
+        the registry, writes ``state='error'`` and ``error_message``,
+        commits, then closes it -- independent of the caller's
+        transaction. Must be called after the ``with
+        self.env.cr.savepoint()`` block has exited, so the row lock
+        taken inside the savepoint is already released; otherwise the
+        second cursor would deadlock against the first while trying to
+        update the same row.
+
+        In test mode (``self.env.registry.in_test_mode()``) a second
+        cursor cannot see the not-yet-committed test data and its
+        commit would leak outside the test's rollback, so the write
+        happens on the current cursor instead.
+
+        Never raises: any failure while recording the error is logged
+        instead, so it does not mask the original exception being
+        propagated by the caller.
+
+        :param message: error text to store in ``error_message``
+        """
+        self.ensure_one()
+        try:
+            if self.env.registry.in_test_mode():
+                self.write({"state": "error", "error_message": message})
+                return
+            with self.pool.cursor() as new_cr:
+                new_env = api.Environment(new_cr, self.env.uid, self.env.context)
+                new_env[self._name].browse(self.id).write(
+                    {"state": "error", "error_message": message}
+                )
+        except Exception:  # pylint: disable=broad-except
+            _logger.exception("Failed to record error on %s id %s", self._name, self.id)
 
     def _check_exclude(self, row, mapping):
         """
@@ -652,15 +698,32 @@ Solution: Fill in the ignore reason before ignoring this line"""
         self.import_id._try_action_done()
 
     def _retry(self):
-        """Reset the line to ``draft`` and process it again.
+        """Reset the line to ``draft`` and reschedule it through the
+        queue instead of processing it inline.
 
-        Clears ``error_message``, calls ``_process_attendance``, then
-        re-evaluates the parent import's completion.
+        Clears ``error_message``, then either requeues the existing
+        ``queue_job_id`` (any state except ``wait_dependencies``,
+        including ``done``, so already-settled lines can be retried
+        again) or enqueues a new ``_process_attendance`` job -- in the
+        import's ``done_queue_job_batch_id`` -- when no job is linked
+        yet, storing the new job on ``queue_job_id``.
+
+        Does not call ``import_id._try_action_done()``: the document
+        cannot be considered finished while a retry has merely been
+        scheduled, not actually run.
         """
         self.ensure_one()
         self.write({"state": "draft", "error_message": False})
-        self._process_attendance()
-        self.import_id._try_action_done()
+        if self.queue_job_id:
+            self.queue_job_id.requeue()
+        else:
+            description = f"Process attendance import data line ID {self.id}"
+            job = (
+                self.with_context(job_batch=self.import_id.done_queue_job_batch_id)
+                .with_delay(description=_(description))
+                ._process_attendance()
+            )
+            self.queue_job_id = job.db_record().id
 
     def _force_queue_job_done(self):
         """Force this line's queue job to ``done`` if not already.

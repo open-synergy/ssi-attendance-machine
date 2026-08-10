@@ -22,13 +22,21 @@ class TestAttendanceMachineImport(YamlTransactionCase):
         self.run_yaml_scenario("test_data_attendance_machine_import.yaml")
 
     def test_failed_pending_job_does_not_block_import_done(self):
-        """A stale ``failed`` job is forced ``done`` so import completes.
+        """A stale ``failed`` job does not block ``_try_action_done``, and
+        is left ``failed`` instead of being forced ``done``.
 
         Pure Python -- trigger P10 (L-09, L-10, L-11: the fixture
         builds a ``queue.job.batch``, calls ``with_delay()`` on the
         underscore-prefixed ``_process_attendance``, and writes
         ``state`` through ``job.db_record()`` -- impossible to
         express in a single ``EVAL:`` expression).
+
+        ``_force_pending_queue_job_done`` only forces jobs in a
+        non-terminal state (``pending``/``enqueued``/``started``) to
+        ``done``; a ``failed`` job's trail is preserved instead. The
+        import still reaches ``done`` because its only data line
+        already settled (``state='done'``) -- completion is decided
+        from the data lines, not from the queue jobs.
         """
         machine = self.env["attendance_machine"].create(
             {"name": "BL-0185 Pending Job Test Machine", "code": "BL0185PY01"}
@@ -60,7 +68,96 @@ class TestAttendanceMachineImport(YamlTransactionCase):
         machine_import._try_action_done()
 
         self.assertEqual(machine_import.state, "done")
+        self.assertEqual(job.db_record().state, "failed")
+
+    def test_ignore_error_line_with_failed_job_marks_job_done(self):
+        """``_ignore`` forces a ``failed`` linked job to ``done`` instead
+        of leaving its failure trail blocking the batch.
+
+        Pure Python -- trigger P10 (L-09, L-10, L-11: the fixture calls
+        ``with_delay()`` on the underscore-prefixed
+        ``_process_attendance`` and writes ``state`` through
+        ``job.db_record()``) and P1 (L-01: ``with_delay()`` returns a
+        ``Delayable``, and ``action: call`` discards return values with
+        no ``save_as`` on ``call`` to capture one).
+
+        A data line in ``error`` state whose linked job already failed
+        is ignored successfully (``ignore_reason`` filled beforehand),
+        and the failed job -- not ``done`` and not ``cancelled`` -- is
+        forced to ``done`` so it stops blocking the import's batch.
+        """
+        machine = self.env["attendance_machine"].create(
+            {"name": "Ignore Failed Job Test Machine", "code": "BL51PY01"}
+        )
+        machine_import = self.env["attendance_machine_import"].create(
+            {"date": "2026-08-10", "machine_id": machine.id}
+        )
+        data_line = self.env["attendance_machine_import.data"].create(
+            {
+                "import_id": machine_import.id,
+                "sequence": 1,
+                "state": "error",
+                "error_message": "Employee code was not yet registered",
+            }
+        )
+        job = data_line.with_delay(
+            description="BL-51 ignore failed job test"
+        )._process_attendance()
+        job.db_record().write({"state": "failed"})
+        data_line.write(
+            {
+                "queue_job_id": job.db_record().id,
+                "ignore_reason": "Employee resigned, safe to ignore",
+            }
+        )
+
+        data_line.action_ignore()
+
+        self.assertEqual(data_line.state, "ignored")
         self.assertEqual(job.db_record().state, "done")
+
+    def test_retry_with_existing_job_requeues_it_instead_of_creating_new(self):
+        """``_retry`` requeues an already-linked job instead of enqueuing
+        a second one for the same line.
+
+        Pure Python -- trigger P10 (L-09, L-10, L-11: the fixture calls
+        ``with_delay()`` on the underscore-prefixed
+        ``_process_attendance`` and writes ``state`` through
+        ``job.db_record()``) and P1 (L-01: ``with_delay()`` returns a
+        ``Delayable``, and ``action: call`` discards return values with
+        no ``save_as`` on ``call`` to capture one).
+
+        A data line in ``error`` state whose ``queue_job_id`` already
+        points at a (stale, ``failed``) job keeps that same job on
+        retry -- it is requeued to ``pending``, not replaced by a new
+        one.
+        """
+        machine = self.env["attendance_machine"].create(
+            {"name": "Retry Existing Job Test Machine", "code": "BL51PY02"}
+        )
+        machine_import = self.env["attendance_machine_import"].create(
+            {"date": "2026-08-10", "machine_id": machine.id}
+        )
+        data_line = self.env["attendance_machine_import.data"].create(
+            {
+                "import_id": machine_import.id,
+                "sequence": 1,
+                "state": "error",
+                "error_message": "Employee code was not yet registered",
+            }
+        )
+        job = data_line.with_delay(
+            description="BL-51 retry existing job test"
+        )._process_attendance()
+        job.db_record().write({"state": "failed"})
+        data_line.queue_job_id = job.db_record().id
+
+        data_line.action_retry()
+
+        self.assertEqual(data_line.state, "draft")
+        self.assertFalse(data_line.error_message)
+        self.assertEqual(data_line.queue_job_id.id, job.db_record().id)
+        self.assertEqual(job.db_record().state, "pending")
 
     def test_action_open_attendances_returns_scoped_action_window(self):
         """Python murni — pemicu P1 (L-01: action `call` YAML membuang nilai balik
