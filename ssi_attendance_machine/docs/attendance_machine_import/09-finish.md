@@ -45,9 +45,11 @@
 3. On the **Import Data** tab, check the **# Data**, **# Done**, **# Error**, and **#
    Ignored** counters to see how many rows still need attention.
 4. If **# Error** is greater than zero, resolve each error row. For a single row:
-   - Click the row's **Retry** button to re-run that row immediately (also usable on
-     rows still **Draft**). On success the row becomes **Done**; on failure it stays
-     **Error** with an updated **Error Message**.
+   - Click the row's **Retry** button to schedule that row for reprocessing (also usable
+     on rows still **Draft**). The row returns to **Draft** and its queue job is
+     rescheduled — this only **queues** the row for another run: the outcome (whether
+     the row lands on **Done** or falls back to **Error** with an updated **Error
+     Message**) only appears later, once the rescheduled job actually runs.
    - Click the row's **Edit Data** button to open a wizard and correct the row's raw
      JSON **Data**, then click **Confirm**. This only returns the row to **Draft** with
      the corrected data — it does **not** retry the row by itself, so follow up with
@@ -55,8 +57,10 @@
    - Click the row's **Ignore** button to open a wizard, fill in the **Reason**, and
      click **Confirm** to exclude that single row from the import without creating an
      attendance record.
-   - Click the header **Retry All Errors** button to retry every **Error** row at once —
-     a shortcut equivalent to clicking **Retry** on each of them individually.
+   - Click the header **Retry All Errors** button to schedule every **Error** row for
+     reprocessing at once — a shortcut equivalent to clicking **Retry** on each of them
+     individually; like **Retry**, the result appears later, once the rescheduled jobs
+     run.
    - Alternatively, click the header **Ignore All Errors** button to exclude every
      remaining **Error** row with one shared reason — see `15-ignore-all-errors`.
 5. If a row's queue job appears stuck (its **Job Batch** is not progressing), open the
@@ -71,10 +75,17 @@
 
 ## Post-Condition
 
-- Resolving the last **Draft**/**Error** row — whether by **Retry**, **Ignore**, **Retry
-  All Errors**, or the wizard behind **Ignore All Errors** — immediately re-checks the
-  document and moves it to **Done** if the **To Done Queue Job Batch** has already
-  finished.
+- Ignoring the last **Draft**/**Error** row — whether via the row's **Ignore** action or
+  the wizard behind **Ignore All Errors** — forces that row's queue job to **Done** and
+  immediately re-checks the document, moving it to **Done** if the **To Done Queue Job
+  Batch** has already finished.
+- **Retry** and **Retry All Errors** never resolve anything immediately: the retried
+  row(s) return to **Draft** and their queue job is rescheduled to **Pending**. The
+  document stays in **Queue To Done** until the rescheduled job actually runs — clicking
+  **Retry** by itself does not move the document to **Done**.
+- If a rescheduled job fails again, the row stays in **Error** with an updated **Error
+  Message**, and its queue job ends up in **Failed** state with a readable traceback
+  available from the **Job Queue** menu.
 - Otherwise, once every queued job finishes and **To Done Queue Job Batch State**
   becomes **Finished**, the `base.automation` calls `action_recompute_queue_done_result`
   on its own, which moves the document to **Done** without further user action.
