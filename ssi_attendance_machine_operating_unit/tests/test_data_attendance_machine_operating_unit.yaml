@@ -35,48 +35,64 @@ scenarios:
             operator: "is_truthy"
 
   - name:
-      "Attendance Machine Import - Single mode attendance follows employee's operating
-      unit"
+      "Attendance Machine Import - Single mode attendance follows the timesheet's
+      operating unit, not the employee's"
     steps:
-      - step: "Create partner for operating unit A"
+      - step: "Create partner for the employee's operating unit"
         action: "create"
         model: "res.partner"
         save_as: "partner_ou_a"
         values:
-          name: "BL0176 Operating Unit A Partner"
+          name: "OU55 Employee OU Partner (Single)"
 
-      - step: "Create operating unit A (not the default one)"
+      - step: "Create operating unit A (the employee's, not used by the attendance)"
         action: "create"
         model: "operating.unit"
         save_as: "ou_a"
         values:
-          name: "BL0176 Operating Unit A"
-          code: "BL0176OUA1"
-          partner_id: "EVAL: registry['partner_ou_a'].id"
+          name: "OU55 Employee OU (Single)"
+          code: "OU55OUA1"
+          partner_id: "REC: partner_ou_a.id"
+
+      - step: "Create partner for the timesheet's operating unit"
+        action: "create"
+        model: "res.partner"
+        save_as: "partner_ou_b"
+        values:
+          name: "OU55 Timesheet OU Partner (Single)"
+
+      - step: "Create operating unit B (the timesheet's, expected on the attendance)"
+        action: "create"
+        model: "operating.unit"
+        save_as: "ou_b"
+        values:
+          name: "OU55 Timesheet OU (Single)"
+          code: "OU55OUB1"
+          partner_id: "REC: partner_ou_b.id"
 
       - step: "Create employee with operating unit A"
         action: "create"
         model: "hr.employee"
         save_as: "employee"
         values:
-          name: "BL0176 Single Test Employee"
-          operating_unit_id: "EVAL: registry['ou_a'].id"
+          name: "OU55 Single Test Employee"
+          operating_unit_id: "REC: ou_a.id"
 
       - step: "Create machine model"
         action: "create"
         model: "attendance_machine_model"
         save_as: "machine_model"
         values:
-          name: "BL0176 Single Test Model"
-          code: "BL0176M1"
+          name: "OU55 Single Test Model"
+          code: "OU55M1"
 
       - step: "Create CSV mapping (single row mode)"
         action: "create"
         model: "attendance_machine_csv_mapping"
         save_as: "csv_mapping"
         values:
-          name: "BL0176 Single Test CSV Mapping"
-          code: "BL0176C1"
+          name: "OU55 Single Test CSV Mapping"
+          code: "OU55C1"
           file_encoding: "utf-8"
           delimiter: "comma"
           row_mode: "single"
@@ -91,19 +107,19 @@ scenarios:
         model: "attendance_machine"
         save_as: "machine"
         values:
-          name: "BL0176 Single Test Machine"
-          code: "BL0176A1"
-          attendance_model_id: "EVAL: registry['machine_model'].id"
-          csv_mapping_id: "EVAL: registry['csv_mapping'].id"
+          name: "OU55 Single Test Machine"
+          code: "OU55A1"
+          attendance_model_id: "REC: machine_model.id"
+          csv_mapping_id: "REC: csv_mapping.id"
 
       - step: "Register employee code on the machine"
         action: "create"
         model: "attendance_machine.employee"
         save_as: "machine_employee"
         values:
-          machine_id: "EVAL: registry['machine'].id"
-          employee_id: "EVAL: registry['employee'].id"
-          employee_code: "BL0176EMP1"
+          machine_id: "REC: machine.id"
+          employee_id: "REC: employee.id"
+          employee_code: "OU55EMP1"
 
       - step: "Get working schedule"
         action: "search"
@@ -113,16 +129,17 @@ scenarios:
         limit: 1
         order: "id asc"
 
-      - step: "Create timesheet (draft)"
+      - step: "Create timesheet (draft) explicitly on operating unit B"
         action: "create"
         model: "hr.timesheet"
         save_as: "timesheet"
         as_user: "base.user_admin"
         values:
-          employee_id: "EVAL: registry['employee'].id"
-          date_start: 2026-03-01
-          date_end: 2026-03-31
-          working_schedule_id: "EVAL: registry['working_schedule'].id"
+          employee_id: "REC: employee.id"
+          date_start: 2026-04-01
+          date_end: 2026-04-30
+          working_schedule_id: "REC: working_schedule.id"
+          operating_unit_id: "REC: ou_b.id"
 
       - step: "Open timesheet"
         action: "call"
@@ -139,19 +156,19 @@ scenarios:
         model: "attendance_machine_import"
         save_as: "machine_import"
         values:
-          date: "2026-03-10"
-          machine_id: "EVAL: registry['machine'].id"
+          date: "2026-04-10"
+          machine_id: "REC: machine.id"
 
       - step: "Create data line with check-in and check-out"
         action: "create"
         model: "attendance_machine_import.data"
         save_as: "data_line"
         values:
-          import_id: "EVAL: registry['machine_import'].id"
+          import_id: "REC: machine_import.id"
           sequence: 1
           data:
-            '{"employee_id": "BL0176EMP1", "check_in": "2026-03-10 08:00:00",
-            "check_out": "2026-03-10 17:00:00"}'
+            '{"employee_id": "OU55EMP1", "check_in": "2026-04-10 08:00:00", "check_out":
+            "2026-04-10 17:00:00"}'
 
       - step: "Process attendance data line directly"
         action: "call"
@@ -169,21 +186,23 @@ scenarios:
             type: "value"
             operator: "is_truthy"
 
-      - step: "Verify the created attendance carries operating unit A"
+      - step: "Find the created attendance"
         action: "search"
         model: "hr.timesheet_attendance"
         domain:
-          - ["employee_id", "=", "EVAL: registry['employee'].id"]
-          - ["sheet_id", "=", "EVAL: registry['timesheet'].id"]
-          - ["date", "=", 2026-03-10]
-          - ["operating_unit_id", "=", "EVAL: registry['ou_a'].id"]
+          - ["employee_id", "=", "REC: employee.id"]
+          - ["sheet_id", "=", "REC: timesheet.id"]
+          - ["date", "=", 2026-04-10]
         save_as: "attendance"
         expect_count: 1
 
-      - step: "Verify the created attendance carries check_in and check_out"
+      - step: "Verify the attendance carries the timesheet's operating unit"
         action: "assert"
         target: "attendance"
         asserts:
+          operating_unit_id:
+            type: "m2o"
+            expected: "REC: ou_b"
           check_in:
             type: "value"
             operator: "is_truthy"
@@ -191,49 +210,76 @@ scenarios:
             type: "value"
             operator: "is_truthy"
 
+      - step:
+          "Explicit differentiator: no attendance on this sheet carries the employee's
+          operating unit A"
+        action: "search"
+        model: "hr.timesheet_attendance"
+        domain:
+          - ["sheet_id", "=", "REC: timesheet.id"]
+          - ["operating_unit_id", "=", "REC: ou_a.id"]
+        save_as: "attendance_on_employee_ou"
+        expect_count: 0
+
   - name:
-      "Attendance Machine Import - Separate mode sign-in attendance follows employee's
-      operating unit"
+      "Attendance Machine Import - Separate mode sign-in attendance follows the
+      timesheet's operating unit, not the employee's"
     steps:
-      - step: "Create partner for operating unit A"
+      - step: "Create partner for the employee's operating unit"
         action: "create"
         model: "res.partner"
         save_as: "partner_ou_a"
         values:
-          name: "BL0176 Operating Unit A Partner (Separate)"
+          name: "OU55 Employee OU Partner (Separate)"
 
-      - step: "Create operating unit A (not the default one)"
+      - step: "Create operating unit A (the employee's, not used by the attendance)"
         action: "create"
         model: "operating.unit"
         save_as: "ou_a"
         values:
-          name: "BL0176 Operating Unit A Separate"
-          code: "BL0176OUA2"
-          partner_id: "EVAL: registry['partner_ou_a'].id"
+          name: "OU55 Employee OU (Separate)"
+          code: "OU55OUA2"
+          partner_id: "REC: partner_ou_a.id"
+
+      - step: "Create partner for the timesheet's operating unit"
+        action: "create"
+        model: "res.partner"
+        save_as: "partner_ou_b"
+        values:
+          name: "OU55 Timesheet OU Partner (Separate)"
+
+      - step: "Create operating unit B (the timesheet's, expected on the attendance)"
+        action: "create"
+        model: "operating.unit"
+        save_as: "ou_b"
+        values:
+          name: "OU55 Timesheet OU (Separate)"
+          code: "OU55OUB2"
+          partner_id: "REC: partner_ou_b.id"
 
       - step: "Create employee with operating unit A"
         action: "create"
         model: "hr.employee"
         save_as: "employee"
         values:
-          name: "BL0176 Separate Test Employee"
-          operating_unit_id: "EVAL: registry['ou_a'].id"
+          name: "OU55 Separate Test Employee"
+          operating_unit_id: "REC: ou_a.id"
 
       - step: "Create machine model"
         action: "create"
         model: "attendance_machine_model"
         save_as: "machine_model"
         values:
-          name: "BL0176 Separate Test Model"
-          code: "BL0176M2"
+          name: "OU55 Separate Test Model"
+          code: "OU55M2"
 
       - step: "Create CSV mapping (separate row mode)"
         action: "create"
         model: "attendance_machine_csv_mapping"
         save_as: "csv_mapping"
         values:
-          name: "BL0176 Separate Test CSV Mapping"
-          code: "BL0176C2"
+          name: "OU55 Separate Test CSV Mapping"
+          code: "OU55C2"
           file_encoding: "utf-8"
           delimiter: "comma"
           row_mode: "separate"
@@ -250,19 +296,19 @@ scenarios:
         model: "attendance_machine"
         save_as: "machine"
         values:
-          name: "BL0176 Separate Test Machine"
-          code: "BL0176A2"
-          attendance_model_id: "EVAL: registry['machine_model'].id"
-          csv_mapping_id: "EVAL: registry['csv_mapping'].id"
+          name: "OU55 Separate Test Machine"
+          code: "OU55A2"
+          attendance_model_id: "REC: machine_model.id"
+          csv_mapping_id: "REC: csv_mapping.id"
 
       - step: "Register employee code on the machine"
         action: "create"
         model: "attendance_machine.employee"
         save_as: "machine_employee"
         values:
-          machine_id: "EVAL: registry['machine'].id"
-          employee_id: "EVAL: registry['employee'].id"
-          employee_code: "BL0176EMP2"
+          machine_id: "REC: machine.id"
+          employee_id: "REC: employee.id"
+          employee_code: "OU55EMP2"
 
       - step: "Get working schedule"
         action: "search"
@@ -272,16 +318,17 @@ scenarios:
         limit: 1
         order: "id asc"
 
-      - step: "Create timesheet (draft)"
+      - step: "Create timesheet (draft) explicitly on operating unit B"
         action: "create"
         model: "hr.timesheet"
         save_as: "timesheet"
         as_user: "base.user_admin"
         values:
-          employee_id: "EVAL: registry['employee'].id"
-          date_start: 2026-03-01
-          date_end: 2026-03-31
-          working_schedule_id: "EVAL: registry['working_schedule'].id"
+          employee_id: "REC: employee.id"
+          date_start: 2026-04-01
+          date_end: 2026-04-30
+          working_schedule_id: "REC: working_schedule.id"
+          operating_unit_id: "REC: ou_b.id"
 
       - step: "Open timesheet"
         action: "call"
@@ -298,18 +345,18 @@ scenarios:
         model: "attendance_machine_import"
         save_as: "machine_import"
         values:
-          date: "2026-03-11"
-          machine_id: "EVAL: registry['machine'].id"
+          date: "2026-04-11"
+          machine_id: "REC: machine.id"
 
       - step: "Create sign-in only data line"
         action: "create"
         model: "attendance_machine_import.data"
         save_as: "data_line"
         values:
-          import_id: "EVAL: registry['machine_import'].id"
+          import_id: "REC: machine_import.id"
           sequence: 1
           data:
-            '{"employee_id": "BL0176EMP2", "row_type": "IN", "datetime": "2026-03-11
+            '{"employee_id": "OU55EMP2", "row_type": "IN", "datetime": "2026-04-11
             08:00:00"}'
 
       - step: "Process attendance data line directly"
@@ -328,21 +375,25 @@ scenarios:
             type: "value"
             operator: "is_truthy"
 
-      - step: "Verify the created attendance carries operating unit A without check_out"
+      - step: "Find the created attendance"
         action: "search"
         model: "hr.timesheet_attendance"
         domain:
-          - ["employee_id", "=", "EVAL: registry['employee'].id"]
-          - ["sheet_id", "=", "EVAL: registry['timesheet'].id"]
-          - ["date", "=", 2026-03-11]
-          - ["operating_unit_id", "=", "EVAL: registry['ou_a'].id"]
+          - ["employee_id", "=", "REC: employee.id"]
+          - ["sheet_id", "=", "REC: timesheet.id"]
+          - ["date", "=", 2026-04-11]
         save_as: "attendance"
         expect_count: 1
 
-      - step: "Verify the created attendance has check_in but no check_out"
+      - step:
+          "Verify the attendance carries the timesheet's operating unit and has no
+          check_out"
         action: "assert"
         target: "attendance"
         asserts:
+          operating_unit_id:
+            type: "m2o"
+            expected: "REC: ou_b"
           check_in:
             type: "value"
             operator: "is_truthy"
@@ -351,53 +402,71 @@ scenarios:
             operator: "is_falsy"
 
   - name:
-      "Attendance Machine Import - Attendance operating unit differs from the default
-      operating unit"
+      "Attendance Machine Import - Guard: attendance keeps the timesheet's operating
+      unit even when processed by a user with a different default operating unit"
     steps:
-      - step: "Get main (default) operating unit"
-        action: "ref"
-        xml_id: "operating_unit.main_operating_unit"
-        save_as: "main_ou"
-
-      - step: "Create partner for operating unit A"
+      - step: "Create partner for the employee's operating unit"
         action: "create"
         model: "res.partner"
         save_as: "partner_ou_a"
         values:
-          name: "BL0176 Operating Unit A Partner (Guard)"
+          name: "OU55 Employee OU Partner (Guard)"
 
-      - step: "Create operating unit A (not the default one)"
+      - step: "Create operating unit A (the employee's, not used by the attendance)"
         action: "create"
         model: "operating.unit"
         save_as: "ou_a"
         values:
-          name: "BL0176 Operating Unit A Guard"
-          code: "BL0176OUA3"
-          partner_id: "EVAL: registry['partner_ou_a'].id"
+          name: "OU55 Employee OU (Guard)"
+          code: "OU55OUA3"
+          partner_id: "REC: partner_ou_a.id"
+
+      - step: "Create partner for the timesheet's operating unit"
+        action: "create"
+        model: "res.partner"
+        save_as: "partner_ou_b"
+        values:
+          name: "OU55 Timesheet OU Partner (Guard)"
+
+      - step: "Create operating unit B (the timesheet's, expected on the attendance)"
+        action: "create"
+        model: "operating.unit"
+        save_as: "ou_b"
+        values:
+          name: "OU55 Timesheet OU (Guard)"
+          code: "OU55OUB3"
+          partner_id: "REC: partner_ou_b.id"
+
+      - step:
+          "Get the main operating unit (base.user_admin's default -- must NOT leak onto
+          the attendance)"
+        action: "ref"
+        xml_id: "operating_unit.main_operating_unit"
+        save_as: "main_ou"
 
       - step: "Create employee with operating unit A"
         action: "create"
         model: "hr.employee"
         save_as: "employee"
         values:
-          name: "BL0176 Guard Test Employee"
-          operating_unit_id: "EVAL: registry['ou_a'].id"
+          name: "OU55 Guard Test Employee"
+          operating_unit_id: "REC: ou_a.id"
 
       - step: "Create machine model"
         action: "create"
         model: "attendance_machine_model"
         save_as: "machine_model"
         values:
-          name: "BL0176 Guard Test Model"
-          code: "BL0176M3"
+          name: "OU55 Guard Test Model"
+          code: "OU55M3"
 
       - step: "Create CSV mapping (single row mode)"
         action: "create"
         model: "attendance_machine_csv_mapping"
         save_as: "csv_mapping"
         values:
-          name: "BL0176 Guard Test CSV Mapping"
-          code: "BL0176C3"
+          name: "OU55 Guard Test CSV Mapping"
+          code: "OU55C3"
           file_encoding: "utf-8"
           delimiter: "comma"
           row_mode: "single"
@@ -412,19 +481,19 @@ scenarios:
         model: "attendance_machine"
         save_as: "machine"
         values:
-          name: "BL0176 Guard Test Machine"
-          code: "BL0176A3"
-          attendance_model_id: "EVAL: registry['machine_model'].id"
-          csv_mapping_id: "EVAL: registry['csv_mapping'].id"
+          name: "OU55 Guard Test Machine"
+          code: "OU55A3"
+          attendance_model_id: "REC: machine_model.id"
+          csv_mapping_id: "REC: csv_mapping.id"
 
       - step: "Register employee code on the machine"
         action: "create"
         model: "attendance_machine.employee"
         save_as: "machine_employee"
         values:
-          machine_id: "EVAL: registry['machine'].id"
-          employee_id: "EVAL: registry['employee'].id"
-          employee_code: "BL0176EMP3"
+          machine_id: "REC: machine.id"
+          employee_id: "REC: employee.id"
+          employee_code: "OU55EMP3"
 
       - step: "Get working schedule"
         action: "search"
@@ -434,16 +503,17 @@ scenarios:
         limit: 1
         order: "id asc"
 
-      - step: "Create timesheet (draft)"
+      - step: "Create timesheet (draft) explicitly on operating unit B"
         action: "create"
         model: "hr.timesheet"
         save_as: "timesheet"
         as_user: "base.user_admin"
         values:
-          employee_id: "EVAL: registry['employee'].id"
-          date_start: 2026-03-01
-          date_end: 2026-03-31
-          working_schedule_id: "EVAL: registry['working_schedule'].id"
+          employee_id: "REC: employee.id"
+          date_start: 2026-04-01
+          date_end: 2026-04-30
+          working_schedule_id: "REC: working_schedule.id"
+          operating_unit_id: "REC: ou_b.id"
 
       - step: "Open timesheet"
         action: "call"
@@ -460,79 +530,113 @@ scenarios:
         model: "attendance_machine_import"
         save_as: "machine_import"
         values:
-          date: "2026-03-12"
-          machine_id: "EVAL: registry['machine'].id"
+          date: "2026-04-12"
+          machine_id: "REC: machine.id"
 
       - step: "Create data line with check-in and check-out"
         action: "create"
         model: "attendance_machine_import.data"
         save_as: "data_line"
         values:
-          import_id: "EVAL: registry['machine_import'].id"
+          import_id: "REC: machine_import.id"
           sequence: 1
           data:
-            '{"employee_id": "BL0176EMP3", "check_in": "2026-03-12 08:00:00",
-            "check_out": "2026-03-12 17:00:00"}'
+            '{"employee_id": "OU55EMP3", "check_in": "2026-04-12 08:00:00", "check_out":
+            "2026-04-12 17:00:00"}'
 
-      - step: "Process attendance data line directly"
+      - step:
+          "Process attendance data line as base.user_admin, whose default operating unit
+          is the main one -- neither OU A nor OU B"
         action: "call"
         target: "data_line"
         method: "_process_attendance"
+        as_user: "base.user_admin"
 
-      - step: "Assert data line resolved to done"
+      - step: "Assert data line resolved to done with attendance linked"
         action: "assert"
         target: "data_line"
         asserts:
           state:
             type: "value"
             expected: "done"
+          attendance_id:
+            type: "value"
+            operator: "is_truthy"
 
-      - step: "Verify the created attendance is NOT on the default operating unit"
+      - step: "Find the created attendance"
         action: "search"
         model: "hr.timesheet_attendance"
         domain:
-          - ["employee_id", "=", "EVAL: registry['employee'].id"]
-          - ["sheet_id", "=", "EVAL: registry['timesheet'].id"]
-          - ["date", "=", 2026-03-12]
-          - ["operating_unit_id", "!=", "EVAL: registry['main_ou'].id"]
-          - ["operating_unit_id", "=", "EVAL: registry['ou_a'].id"]
+          - ["employee_id", "=", "REC: employee.id"]
+          - ["sheet_id", "=", "REC: timesheet.id"]
+          - ["date", "=", 2026-04-12]
         save_as: "attendance"
         expect_count: 1
 
+      - step:
+          "Verify the attendance carries the timesheet's operating unit, not the
+          processing user's default"
+        action: "assert"
+        target: "attendance"
+        asserts:
+          operating_unit_id:
+            type: "m2o"
+            expected: "REC: ou_b"
+
+      - step:
+          "Explicit differentiator: no attendance on this sheet carries the processing
+          user's default operating unit"
+        action: "search"
+        model: "hr.timesheet_attendance"
+        domain:
+          - ["sheet_id", "=", "REC: timesheet.id"]
+          - ["operating_unit_id", "=", "REC: main_ou.id"]
+        save_as: "attendance_on_admin_default_ou"
+        expect_count: 0
+
   - name:
-      "Attendance Machine Import - Employee without operating unit still imports
-      successfully"
+      "Attendance Machine Import - Timesheet without operating unit yields an attendance
+      without operating unit"
     steps:
-      - step: "Create employee without operating unit"
+      - step: "Create partner for the employee's operating unit"
+        action: "create"
+        model: "res.partner"
+        save_as: "partner_ou_a"
+        values:
+          name: "OU55 Employee OU Partner (No OU)"
+
+      - step: "Create operating unit A (the employee's, must not leak either)"
+        action: "create"
+        model: "operating.unit"
+        save_as: "ou_a"
+        values:
+          name: "OU55 Employee OU (No OU)"
+          code: "OU55OUA4"
+          partner_id: "REC: partner_ou_a.id"
+
+      - step: "Create employee with operating unit A"
         action: "create"
         model: "hr.employee"
         save_as: "employee"
         values:
-          name: "BL0176 No OU Test Employee"
-
-      - step: "Assert employee has no explicit operating unit override"
-        action: "assert"
-        target: "employee"
-        asserts:
-          id:
-            type: "value"
-            operator: "is_truthy"
+          name: "OU55 No OU Test Employee"
+          operating_unit_id: "REC: ou_a.id"
 
       - step: "Create machine model"
         action: "create"
         model: "attendance_machine_model"
         save_as: "machine_model"
         values:
-          name: "BL0176 No OU Test Model"
-          code: "BL0176M4"
+          name: "OU55 No OU Test Model"
+          code: "OU55M4"
 
       - step: "Create CSV mapping (single row mode)"
         action: "create"
         model: "attendance_machine_csv_mapping"
         save_as: "csv_mapping"
         values:
-          name: "BL0176 No OU Test CSV Mapping"
-          code: "BL0176C4"
+          name: "OU55 No OU Test CSV Mapping"
+          code: "OU55C4"
           file_encoding: "utf-8"
           delimiter: "comma"
           row_mode: "single"
@@ -547,19 +651,19 @@ scenarios:
         model: "attendance_machine"
         save_as: "machine"
         values:
-          name: "BL0176 No OU Test Machine"
-          code: "BL0176A4"
-          attendance_model_id: "EVAL: registry['machine_model'].id"
-          csv_mapping_id: "EVAL: registry['csv_mapping'].id"
+          name: "OU55 No OU Test Machine"
+          code: "OU55A4"
+          attendance_model_id: "REC: machine_model.id"
+          csv_mapping_id: "REC: csv_mapping.id"
 
       - step: "Register employee code on the machine"
         action: "create"
         model: "attendance_machine.employee"
         save_as: "machine_employee"
         values:
-          machine_id: "EVAL: registry['machine'].id"
-          employee_id: "EVAL: registry['employee'].id"
-          employee_code: "BL0176EMP4"
+          machine_id: "REC: machine.id"
+          employee_id: "REC: employee.id"
+          employee_code: "OU55EMP4"
 
       - step: "Get working schedule"
         action: "search"
@@ -569,16 +673,17 @@ scenarios:
         limit: 1
         order: "id asc"
 
-      - step: "Create timesheet (draft)"
+      - step: "Create timesheet (draft) with operating_unit_id explicitly empty"
         action: "create"
         model: "hr.timesheet"
         save_as: "timesheet"
         as_user: "base.user_admin"
         values:
-          employee_id: "EVAL: registry['employee'].id"
-          date_start: 2026-03-01
-          date_end: 2026-03-31
-          working_schedule_id: "EVAL: registry['working_schedule'].id"
+          employee_id: "REC: employee.id"
+          date_start: 2026-04-01
+          date_end: 2026-04-30
+          working_schedule_id: "REC: working_schedule.id"
+          operating_unit_id: false
 
       - step: "Open timesheet"
         action: "call"
@@ -590,29 +695,40 @@ scenarios:
             type: "value"
             expected: "open"
 
+      - step: "Assert the timesheet has no operating unit"
+        action: "assert"
+        target: "timesheet"
+        asserts:
+          operating_unit_id:
+            type: "value"
+            operator: "is_falsy"
+
       - step: "Create attendance machine import"
         action: "create"
         model: "attendance_machine_import"
         save_as: "machine_import"
         values:
-          date: "2026-03-13"
-          machine_id: "EVAL: registry['machine'].id"
+          date: "2026-04-13"
+          machine_id: "REC: machine.id"
 
       - step: "Create data line with check-in and check-out"
         action: "create"
         model: "attendance_machine_import.data"
         save_as: "data_line"
         values:
-          import_id: "EVAL: registry['machine_import'].id"
+          import_id: "REC: machine_import.id"
           sequence: 1
           data:
-            '{"employee_id": "BL0176EMP4", "check_in": "2026-03-13 08:00:00",
-            "check_out": "2026-03-13 17:00:00"}'
+            '{"employee_id": "OU55EMP4", "check_in": "2026-04-13 08:00:00", "check_out":
+            "2026-04-13 17:00:00"}'
 
-      - step: "Process attendance data line directly"
+      - step:
+          "Process attendance data line as base.user_admin, whose default operating unit
+          must not leak in"
         action: "call"
         target: "data_line"
         method: "_process_attendance"
+        as_user: "base.user_admin"
 
       - step: "Assert data line resolved to done (not error) with attendance linked"
         action: "assert"
@@ -624,3 +740,23 @@ scenarios:
           attendance_id:
             type: "value"
             operator: "is_truthy"
+
+      - step: "Find the created attendance"
+        action: "search"
+        model: "hr.timesheet_attendance"
+        domain:
+          - ["employee_id", "=", "REC: employee.id"]
+          - ["sheet_id", "=", "REC: timesheet.id"]
+          - ["date", "=", 2026-04-13]
+        save_as: "attendance"
+        expect_count: 1
+
+      - step:
+          "Verify the attendance has no operating unit -- neither the employee's nor the
+          processing user's default"
+        action: "assert"
+        target: "attendance"
+        asserts:
+          operating_unit_id:
+            type: "value"
+            operator: "is_falsy"
