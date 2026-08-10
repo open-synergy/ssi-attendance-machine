@@ -545,12 +545,12 @@ scenarios:
             "2026-04-12 17:00:00"}'
 
       - step:
-          "Process attendance data line as base.user_admin, whose default operating unit
-          is the main one -- neither OU A nor OU B"
+          "Process attendance data line -- operating_unit_id is set explicitly from the
+          timesheet in vals, so it cannot leak from any processing user's default
+          operating unit regardless of who runs it"
         action: "call"
         target: "data_line"
         method: "_process_attendance"
-        as_user: "base.user_admin"
 
       - step: "Assert data line resolved to done with attendance linked"
         action: "assert"
@@ -723,12 +723,12 @@ scenarios:
             "2026-04-13 17:00:00"}'
 
       - step:
-          "Process attendance data line as base.user_admin, whose default operating unit
-          must not leak in"
+          "Process attendance data line -- operating_unit_id is set explicitly from the
+          (empty) timesheet operating unit in vals, so it cannot fall back to any
+          processing user's default operating unit"
         action: "call"
         target: "data_line"
         method: "_process_attendance"
-        as_user: "base.user_admin"
 
       - step: "Assert data line resolved to done (not error) with attendance linked"
         action: "assert"
