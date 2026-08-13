@@ -344,6 +344,7 @@ msgstr ""
 
 #. module: ssi_attendance_machine
 #: model:ir.model,name:ssi_attendance_machine.model_attendance_machine
+#: model:ir.ui.menu,name:ssi_attendance_machine.menu_attendance_machine_configuration
 #: model:res.groups,name:ssi_attendance_machine.attendance_machine_group
 msgid "Attendance Machine"
 msgstr ""
@@ -689,7 +690,6 @@ msgid ""
 msgstr ""
 
 #. module: ssi_attendance_machine
-#: model:ir.ui.menu,name:ssi_attendance_machine.menu_attendance_machine_configuration
 #: model_terms:ir.ui.view,arch_db:ssi_attendance_machine.attendance_machine_view_form
 msgid "Configuration"
 msgstr ""
@@ -1858,6 +1858,22 @@ msgstr ""
 #. module: ssi_attendance_machine
 #: model:attendance_machine,name:ssi_attendance_machine.attendance_machine_demo_warehouse
 msgid "Warehouse - Side Gate"
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine__website_message_ids
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_csv_mapping__website_message_ids
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_import__website_message_ids
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_model__website_message_ids
+msgid "Website Messages"
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine__website_message_ids
+#: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine_csv_mapping__website_message_ids
+#: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine_import__website_message_ids
+#: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine_model__website_message_ids
+msgid "Website communication history"
 msgstr ""
 
 #. module: ssi_attendance_machine
