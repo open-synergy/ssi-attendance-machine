@@ -7,7 +7,7 @@
 
 <menuitem
             id="menu_attendance_machine_configuration"
-            name="Configuration"
+            name="Attendance Machine"
             parent="ssi_hr.menu_human_resource_configuration"
             sequence="99"
         />

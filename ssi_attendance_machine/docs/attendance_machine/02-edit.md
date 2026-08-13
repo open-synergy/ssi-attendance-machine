@@ -4,7 +4,7 @@
 >
 > **Model:** `attendance_machine`
 >
-> **Menu:** Human Resource > Configuration > Configuration > Attendance Machines
+> **Menu:** Human Resource > Configuration > Attendance Machine > Attendance Machines
 >
 > **Actor:** user in group _Attendance Machine_
 >
@@ -18,8 +18,8 @@
 
 ## Flow
 
-1. Open the **Human Resource > Configuration > Configuration > Attendance Machines**
-   menu.
+1. Open the **Human Resource > Configuration > Attendance Machine > Attendance
+   Machines** menu.
 2. Find and open the record to edit.
 3. Change **Name**, **Code**, **Active**, or **Note** as needed.
 4. On the **Configuration** tab, change **Machine Model** or **CSV Mapping** as needed.

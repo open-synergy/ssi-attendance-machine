@@ -56,6 +56,12 @@
                             <field name="employee_id" />
                             <field name="employee_code" />
                         </tree>
+                        <form>
+                            <group>
+                                <field name="employee_id" />
+                                <field name="employee_code" />
+                            </group>
+                        </form>
                     </field>
                 </page>
             </xpath>

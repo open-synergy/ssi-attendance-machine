@@ -4,7 +4,8 @@
 >
 > **Model:** `attendance_machine_model`
 >
-> **Menu:** Human Resource > Configuration > Configuration > Attendance Machine Models
+> **Menu:** Human Resource > Configuration > Attendance Machine > Attendance Machine
+> Models
 >
 > **Actor:** user in group _Attendance Machine Model_
 >
@@ -17,7 +18,7 @@
 
 ## Flow
 
-1. Open the **Human Resource > Configuration > Configuration > Attendance Machine
+1. Open the **Human Resource > Configuration > Attendance Machine > Attendance Machine
    Models** menu.
 2. Select one or more records whose code will be reset (check the checkbox).
 3. Click the **Reset code** button that appears above the list. The action runs
