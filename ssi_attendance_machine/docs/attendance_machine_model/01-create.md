@@ -4,7 +4,8 @@
 >
 > **Model:** `attendance_machine_model`
 >
-> **Menu:** Human Resource > Configuration > Configuration > Attendance Machine Models
+> **Menu:** Human Resource > Configuration > Attendance Machine > Attendance Machine
+> Models
 >
 > **Actor:** user in group _Attendance Machine Model_
 >
@@ -16,7 +17,7 @@
 
 ## Flow
 
-1. Open the **Human Resource > Configuration > Configuration > Attendance Machine
+1. Open the **Human Resource > Configuration > Attendance Machine > Attendance Machine
    Models** menu.
 2. Click the **New** button. **(14.0: "Create")**
 3. Fill in the required fields:

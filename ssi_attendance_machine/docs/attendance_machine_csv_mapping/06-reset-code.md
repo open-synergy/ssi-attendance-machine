@@ -4,7 +4,8 @@
 >
 > **Model:** `attendance_machine_csv_mapping`
 >
-> **Menu:** Human Resource > Configuration > Configuration > CSV Mappings
+> **Menu:** Human Resource > Configuration > Attendance Machine > Attendance Machine CSV
+> Mappings
 >
 > **Actor:** user in group _Attendance Machine CSV Mapping_
 >
@@ -17,7 +18,8 @@
 
 ## Flow
 
-1. Open the **Human Resource > Configuration > Configuration > CSV Mappings** menu.
+1. Open the **Human Resource > Configuration > Attendance Machine > Attendance Machine
+   CSV Mappings** menu.
 2. Select one or more records whose code will be reset (check the checkbox).
 3. Click the **Reset code** button that appears above the list. The action runs
    immediately — this button does not show a confirmation dialog.
