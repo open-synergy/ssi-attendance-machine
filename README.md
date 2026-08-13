@@ -30,7 +30,7 @@ Available addons
 ----------------
 addon | version | maintainers | summary
 --- | --- | --- | ---
-[ssi_attendance_machine](ssi_attendance_machine/) | 14.0.2.12.8 |  | Attendance Machine
+[ssi_attendance_machine](ssi_attendance_machine/) | 14.0.2.12.9 |  | Attendance Machine
 [ssi_attendance_machine_documenso_signing](ssi_attendance_machine_documenso_signing/) | 14.0.1.0.2 |  | Attendance Machine - Documenso Signing Integration
 [ssi_attendance_machine_operating_unit](ssi_attendance_machine_operating_unit/) | 14.0.1.2.3 |  | Attendance Machine + Operating Unit
 
