@@ -579,3 +579,65 @@ class TestAttendanceMachineImport(YamlTransactionCase):
         self.assertEqual(action["res_model"], "attendance_machine_import_data_edit")
         self.assertEqual(action["target"], "new")
         self.assertEqual(action["context"]["default_data_id"], data_line.id)
+
+    def test_process_attendance_job_runs_on_dedicated_channel(self):
+        """A ``_process_attendance`` job is routed to
+        ``root.attendance_machine``, not to the shared ``root`` channel.
+
+        Pure Python -- trigger P10 (L-09, L-10, L-11: ``with_delay()``
+        on the underscore-prefixed ``_process_attendance`` cannot be
+        written as a single ``EVAL:`` expression) and P1 (L-01:
+        ``action: call`` discards return values, so the ``Delayable``
+        that ``with_delay()`` returns cannot be captured from YAML).
+
+        The channel is read back from the real ``queue.job`` record
+        through ``job.db_record()``, which is what the job runner
+        dispatches on.
+        """
+        machine = self.env["attendance_machine"].create(
+            {"name": "Queue Channel Test Machine", "code": "BL59PY01"}
+        )
+        machine_import = self.env["attendance_machine_import"].create(
+            {"date": "2026-08-20", "machine_id": machine.id}
+        )
+        data_line = self.env["attendance_machine_import.data"].create(
+            {"import_id": machine_import.id, "sequence": 1}
+        )
+
+        job = data_line.with_delay(
+            description="BL-59 queue channel routing test"
+        )._process_attendance()
+
+        self.assertEqual(job.db_record().channel, "root.attendance_machine")
+
+    def test_unregistered_method_job_stays_on_root_channel(self):
+        """A job for a method that has no ``queue.job.function`` record
+        still lands on ``root``.
+
+        Pure Python -- trigger P10 (L-09, L-10, L-11: ``with_delay()``
+        on the underscore-prefixed ``_force_queue_job_done`` cannot be
+        written as a single ``EVAL:`` expression) and P1 (L-01:
+        ``action: call`` discards return values, so the ``Delayable``
+        that ``with_delay()`` returns cannot be captured from YAML).
+
+        ``_force_queue_job_done`` belongs to the same model as the two
+        registered methods but is deliberately absent from
+        ``data/queue_job_function_data.xml``. Its job therefore falls
+        back to ``job_default_config()``, proving the routing comes
+        from the job function records and not from the model name.
+        """
+        machine = self.env["attendance_machine"].create(
+            {"name": "Queue Channel Fallback Test Machine", "code": "BL59PY02"}
+        )
+        machine_import = self.env["attendance_machine_import"].create(
+            {"date": "2026-08-20", "machine_id": machine.id}
+        )
+        data_line = self.env["attendance_machine_import.data"].create(
+            {"import_id": machine_import.id, "sequence": 1}
+        )
+
+        job = data_line.with_delay(
+            description="BL-59 unregistered method routing test"
+        )._force_queue_job_done()
+
+        self.assertEqual(job.db_record().channel, "root")

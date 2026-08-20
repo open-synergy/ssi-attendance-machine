@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2026 OpenSynergy Indonesia
+     Copyright 2026 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo noupdate="1">
+    <!-- Dedicated queue_job channel for the attendance import jobs. A single
+         routine attendance file spawns one job per data line (hundreds at a
+         time), so leaving them on the shared "root" channel makes every other
+         module's job (mail, accounting, reporting) queue up behind an import.
+         See ssi-attendance-machine#59 for context. -->
+    <record id="channel_attendance_machine" model="queue.job.channel">
+        <field name="name">attendance_machine</field>
+        <field name="parent_id" ref="queue_job.channel_root" />
+    </record>
+</odoo>
