@@ -2092,3 +2092,660 @@ scenarios:
           queue_job_id.state:
             type: "value"
             expected: "pending"
+
+  - name:
+      "Attendance Machine Import - Single mode merges two check-in-only rows into one
+      attendance (BL-61)"
+    steps:
+      - step: "Create machine model"
+        action: "create"
+        model: "attendance_machine_model"
+        save_as: "machine_model"
+        values:
+          name: "BL-61 Merge Test Model"
+          code: "BL61M1"
+
+      - step: "Create CSV mapping (single row mode)"
+        action: "create"
+        model: "attendance_machine_csv_mapping"
+        save_as: "csv_mapping"
+        values:
+          name: "BL-61 Merge Test CSV Mapping"
+          code: "BL61C1"
+          file_encoding: "utf-8"
+          delimiter: "comma"
+          row_mode: "single"
+          datetime_mode: "combined"
+          employee_column: "employee_id"
+          check_in_column: "check_in"
+          check_out_column: "check_out"
+          datetime_format: "%Y-%m-%d %H:%M:%S"
+
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "BL-61 Merge Test Machine"
+          code: "BL61A1"
+          attendance_model_id: "EVAL: registry['machine_model'].id"
+          csv_mapping_id: "EVAL: registry['csv_mapping'].id"
+
+      - step: "Create employee"
+        action: "create"
+        model: "hr.employee"
+        save_as: "employee"
+        values:
+          name: "BL-61 Merge Test Employee"
+
+      - step: "Register employee code on the machine"
+        action: "create"
+        model: "attendance_machine.employee"
+        save_as: "machine_employee"
+        values:
+          machine_id: "EVAL: registry['machine'].id"
+          employee_id: "EVAL: registry['employee'].id"
+          employee_code: "BL61EMP1"
+
+      - step: "Get working schedule"
+        action: "search"
+        model: "resource.calendar"
+        domain: []
+        save_as: "working_schedule"
+        limit: 1
+        order: "id asc"
+
+      - step: "Create timesheet (draft)"
+        action: "create"
+        model: "hr.timesheet"
+        save_as: "timesheet"
+        as_user: "base.user_admin"
+        values:
+          employee_id: "EVAL: registry['employee'].id"
+          date_start: 2026-08-01
+          date_end: 2026-08-31
+          working_schedule_id: "EVAL: registry['working_schedule'].id"
+
+      - step: "Open timesheet"
+        action: "call"
+        target: "timesheet"
+        method: "action_open"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-08-20"
+          machine_id: "EVAL: registry['machine'].id"
+
+      - step:
+          "Create first check-in-only data line, scanned 07:00 (e.g. campus A machine)"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_first"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 1
+          data: '{"employee_id": "BL61EMP1", "check_in": "2026-08-20 07:00:00"}'
+
+      - step: "Process the first check-in-only data line directly"
+        action: "call"
+        target: "data_line_first"
+        method: "_process_attendance"
+
+      - step: "Assert first line resolved to a new open attendance, no check_out yet"
+        action: "assert"
+        target: "data_line_first"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+          attendance_id:
+            type: "value"
+            operator: "is_truthy"
+          attendance_id.check_in:
+            type: "value"
+            operator: "is_truthy"
+          attendance_id.check_out:
+            type: "value"
+            operator: "is_falsy"
+
+      - step:
+          "Create second check-in-only data line, same employee/date, scanned 15:00
+          (e.g. campus B machine)"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_second"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 2
+          data: '{"employee_id": "BL61EMP1", "check_in": "2026-08-20 15:00:00"}'
+
+      - step: "Process the second check-in-only data line directly"
+        action: "call"
+        target: "data_line_second"
+        method: "_process_attendance"
+
+      - step: "Assert second line resolved onto the SAME attendance as the first line"
+        action: "assert"
+        target: "data_line_second"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+          attendance_id:
+            type: "m2o"
+            expected: "REC: data_line_first.attendance_id"
+
+      - step: "Verify only one attendance record exists for employee/date"
+        action: "search"
+        model: "hr.timesheet_attendance"
+        domain:
+          - ["employee_id", "=", "EVAL: registry['employee'].id"]
+          - ["date", "=", 2026-08-20]
+        save_as: "merged_attendance"
+        expect_count: 1
+
+      - step:
+          "Verify the merged attendance now carries a check_out, and total_hour matches
+          the 8-hour gap between the two scans"
+        action: "assert"
+        target: "merged_attendance"
+        asserts:
+          check_out:
+            type: "value"
+            operator: "is_truthy"
+          total_hour:
+            type: "value"
+            expected: 8.0
+
+      - step: "Re-process the already-done second line; it must be a no-op"
+        action: "call"
+        target: "data_line_second"
+        method: "_process_attendance"
+
+      - step:
+          "Verify reprocessing the done line did not touch the merged attendance's
+          check_out/total_hour"
+        action: "assert"
+        target: "merged_attendance"
+        refresh: true
+        asserts:
+          total_hour:
+            type: "value"
+            expected: 8.0
+
+  - name:
+      "Attendance Machine Import - Single mode full check-in/check-out row keeps
+      spawning its own attendance, unaffected by a later check-in-only row (BL-61)"
+    steps:
+      - step: "Create machine model"
+        action: "create"
+        model: "attendance_machine_model"
+        save_as: "machine_model"
+        values:
+          name: "BL-61 Full Row Test Model"
+          code: "BL61M2"
+
+      - step: "Create CSV mapping (single row mode)"
+        action: "create"
+        model: "attendance_machine_csv_mapping"
+        save_as: "csv_mapping"
+        values:
+          name: "BL-61 Full Row Test CSV Mapping"
+          code: "BL61C2"
+          file_encoding: "utf-8"
+          delimiter: "comma"
+          row_mode: "single"
+          datetime_mode: "combined"
+          employee_column: "employee_id"
+          check_in_column: "check_in"
+          check_out_column: "check_out"
+          datetime_format: "%Y-%m-%d %H:%M:%S"
+
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "BL-61 Full Row Test Machine"
+          code: "BL61A2"
+          attendance_model_id: "EVAL: registry['machine_model'].id"
+          csv_mapping_id: "EVAL: registry['csv_mapping'].id"
+
+      - step: "Create employee"
+        action: "create"
+        model: "hr.employee"
+        save_as: "employee"
+        values:
+          name: "BL-61 Full Row Test Employee"
+
+      - step: "Register employee code on the machine"
+        action: "create"
+        model: "attendance_machine.employee"
+        save_as: "machine_employee"
+        values:
+          machine_id: "EVAL: registry['machine'].id"
+          employee_id: "EVAL: registry['employee'].id"
+          employee_code: "BL61EMP2"
+
+      - step: "Get working schedule"
+        action: "search"
+        model: "resource.calendar"
+        domain: []
+        save_as: "working_schedule"
+        limit: 1
+        order: "id asc"
+
+      - step: "Create timesheet (draft)"
+        action: "create"
+        model: "hr.timesheet"
+        save_as: "timesheet"
+        as_user: "base.user_admin"
+        values:
+          employee_id: "EVAL: registry['employee'].id"
+          date_start: 2026-08-01
+          date_end: 2026-08-31
+          working_schedule_id: "EVAL: registry['working_schedule'].id"
+
+      - step: "Open timesheet"
+        action: "call"
+        target: "timesheet"
+        method: "action_open"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-08-21"
+          machine_id: "EVAL: registry['machine'].id"
+
+      - step: "Create a full row with both check-in (07:00) and check-out (15:00)"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_full"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 1
+          data:
+            '{"employee_id": "BL61EMP2", "check_in": "2026-08-21 07:00:00", "check_out":
+            "2026-08-21 15:00:00"}'
+
+      - step: "Process the full row directly"
+        action: "call"
+        target: "data_line_full"
+        method: "_process_attendance"
+
+      - step:
+          "Assert full row resolved to its own attendance, already carrying check_out"
+        action: "assert"
+        target: "data_line_full"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+          attendance_id:
+            type: "value"
+            operator: "is_truthy"
+          attendance_id.check_out:
+            type: "value"
+            operator: "is_truthy"
+
+      - step: "Create a later check-in-only row, same employee/date, scanned 18:00"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_extra"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 2
+          data: '{"employee_id": "BL61EMP2", "check_in": "2026-08-21 18:00:00"}'
+
+      - step: "Process the later check-in-only row directly"
+        action: "call"
+        target: "data_line_extra"
+        method: "_process_attendance"
+
+      - step:
+          "Assert the later row spawned its OWN attendance, distinct from the full
+          row's, and left the full row's attendance untouched"
+        action: "assert"
+        target: "data_line_extra"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+          attendance_id:
+            type: "value"
+            operator: "is_truthy"
+
+      - step: "Verify two separate attendance records now exist for employee/date"
+        action: "search"
+        model: "hr.timesheet_attendance"
+        domain:
+          - ["employee_id", "=", "EVAL: registry['employee'].id"]
+          - ["date", "=", 2026-08-21]
+        save_as: "all_attendances"
+        expect_count: 2
+
+      - step:
+          "Verify the full row's own attendance still carries its original check_out"
+        action: "assert"
+        target: "data_line_full"
+        refresh: true
+        asserts:
+          attendance_id.check_out:
+            type: "value"
+            operator: "is_truthy"
+          attendance_id.id:
+            type: "value"
+            operator: "not_equals"
+            expected: "REC: data_line_extra.attendance_id.id"
+
+  - name:
+      "Attendance Machine Import - Single mode check-in-only row never closes an
+      attendance opened AFTER it (BL-61)"
+    steps:
+      - step: "Create machine model"
+        action: "create"
+        model: "attendance_machine_model"
+        save_as: "machine_model"
+        values:
+          name: "BL-61 Later-Opened Test Model"
+          code: "BL61M3"
+
+      - step: "Create CSV mapping (single row mode)"
+        action: "create"
+        model: "attendance_machine_csv_mapping"
+        save_as: "csv_mapping"
+        values:
+          name: "BL-61 Later-Opened Test CSV Mapping"
+          code: "BL61C3"
+          file_encoding: "utf-8"
+          delimiter: "comma"
+          row_mode: "single"
+          datetime_mode: "combined"
+          employee_column: "employee_id"
+          check_in_column: "check_in"
+          check_out_column: "check_out"
+          datetime_format: "%Y-%m-%d %H:%M:%S"
+
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "BL-61 Later-Opened Test Machine"
+          code: "BL61A3"
+          attendance_model_id: "EVAL: registry['machine_model'].id"
+          csv_mapping_id: "EVAL: registry['csv_mapping'].id"
+
+      - step: "Create employee"
+        action: "create"
+        model: "hr.employee"
+        save_as: "employee"
+        values:
+          name: "BL-61 Later-Opened Test Employee"
+
+      - step: "Register employee code on the machine"
+        action: "create"
+        model: "attendance_machine.employee"
+        save_as: "machine_employee"
+        values:
+          machine_id: "EVAL: registry['machine'].id"
+          employee_id: "EVAL: registry['employee'].id"
+          employee_code: "BL61EMP3"
+
+      - step: "Get working schedule"
+        action: "search"
+        model: "resource.calendar"
+        domain: []
+        save_as: "working_schedule"
+        limit: 1
+        order: "id asc"
+
+      - step: "Create timesheet (draft)"
+        action: "create"
+        model: "hr.timesheet"
+        save_as: "timesheet"
+        as_user: "base.user_admin"
+        values:
+          employee_id: "EVAL: registry['employee'].id"
+          date_start: 2026-08-01
+          date_end: 2026-08-31
+          working_schedule_id: "EVAL: registry['working_schedule'].id"
+
+      - step: "Open timesheet"
+        action: "call"
+        target: "timesheet"
+        method: "action_open"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-08-22"
+          machine_id: "EVAL: registry['machine'].id"
+
+      - step: "Create check-in-only row scanned 07:00, processed first"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_0700"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 1
+          data: '{"employee_id": "BL61EMP3", "check_in": "2026-08-22 07:00:00"}'
+
+      - step: "Process the 07:00 row directly"
+        action: "call"
+        target: "data_line_0700"
+        method: "_process_attendance"
+
+      - step: "Assert the 07:00 row opened its own attendance, no check_out"
+        action: "assert"
+        target: "data_line_0700"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+          attendance_id.check_out:
+            type: "value"
+            operator: "is_falsy"
+
+      - step:
+          "Create a check-in-only row scanned 06:00 (earlier clock time), processed
+          AFTER the 07:00 row"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_0600"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 2
+          data: '{"employee_id": "BL61EMP3", "check_in": "2026-08-22 06:00:00"}'
+
+      - step: "Process the 06:00 row directly"
+        action: "call"
+        target: "data_line_0600"
+        method: "_process_attendance"
+
+      - step:
+          "Assert the 06:00 row spawned its OWN new attendance instead of closing the
+          07:00 attendance that was opened after it"
+        action: "assert"
+        target: "data_line_0600"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+          attendance_id.id:
+            type: "value"
+            operator: "not_equals"
+            expected: "REC: data_line_0700.attendance_id.id"
+          attendance_id.check_out:
+            type: "value"
+            operator: "is_falsy"
+
+      - step: "Verify the 07:00 attendance's check_out is still empty"
+        action: "assert"
+        target: "data_line_0700"
+        refresh: true
+        asserts:
+          attendance_id.check_out:
+            type: "value"
+            operator: "is_falsy"
+
+      - step: "Verify two separate attendance records now exist for employee/date"
+        action: "search"
+        model: "hr.timesheet_attendance"
+        domain:
+          - ["employee_id", "=", "EVAL: registry['employee'].id"]
+          - ["date", "=", 2026-08-22]
+        save_as: "all_attendances"
+        expect_count: 2
+
+  - name:
+      "Attendance Machine Import - Single mode first check-in-only row of the day spawns
+      a new open attendance (BL-61)"
+    steps:
+      - step: "Create machine model"
+        action: "create"
+        model: "attendance_machine_model"
+        save_as: "machine_model"
+        values:
+          name: "BL-61 First Row Test Model"
+          code: "BL61M4"
+
+      - step: "Create CSV mapping (single row mode)"
+        action: "create"
+        model: "attendance_machine_csv_mapping"
+        save_as: "csv_mapping"
+        values:
+          name: "BL-61 First Row Test CSV Mapping"
+          code: "BL61C4"
+          file_encoding: "utf-8"
+          delimiter: "comma"
+          row_mode: "single"
+          datetime_mode: "combined"
+          employee_column: "employee_id"
+          check_in_column: "check_in"
+          check_out_column: "check_out"
+          datetime_format: "%Y-%m-%d %H:%M:%S"
+
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "BL-61 First Row Test Machine"
+          code: "BL61A4"
+          attendance_model_id: "EVAL: registry['machine_model'].id"
+          csv_mapping_id: "EVAL: registry['csv_mapping'].id"
+
+      - step: "Create employee"
+        action: "create"
+        model: "hr.employee"
+        save_as: "employee"
+        values:
+          name: "BL-61 First Row Test Employee"
+
+      - step: "Register employee code on the machine"
+        action: "create"
+        model: "attendance_machine.employee"
+        save_as: "machine_employee"
+        values:
+          machine_id: "EVAL: registry['machine'].id"
+          employee_id: "EVAL: registry['employee'].id"
+          employee_code: "BL61EMP4"
+
+      - step: "Get working schedule"
+        action: "search"
+        model: "resource.calendar"
+        domain: []
+        save_as: "working_schedule"
+        limit: 1
+        order: "id asc"
+
+      - step: "Create timesheet (draft)"
+        action: "create"
+        model: "hr.timesheet"
+        save_as: "timesheet"
+        as_user: "base.user_admin"
+        values:
+          employee_id: "EVAL: registry['employee'].id"
+          date_start: 2026-08-01
+          date_end: 2026-08-31
+          working_schedule_id: "EVAL: registry['working_schedule'].id"
+
+      - step: "Open timesheet"
+        action: "call"
+        target: "timesheet"
+        method: "action_open"
+        as_user: "base.user_admin"
+        asserts:
+          state:
+            type: "value"
+            expected: "open"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-08-23"
+          machine_id: "EVAL: registry['machine'].id"
+
+      - step: "Create the only, check-in-only row for this employee/date"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line"
+        values:
+          import_id: "EVAL: registry['machine_import'].id"
+          sequence: 1
+          data: '{"employee_id": "BL61EMP4", "check_in": "2026-08-23 08:00:00"}'
+
+      - step: "Process the row directly"
+        action: "call"
+        target: "data_line"
+        method: "_process_attendance"
+
+      - step: "Assert it spawned a new attendance with check_out still empty"
+        action: "assert"
+        target: "data_line"
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+          attendance_id:
+            type: "value"
+            operator: "is_truthy"
+          attendance_id.check_in:
+            type: "value"
+            operator: "is_truthy"
+          attendance_id.check_out:
+            type: "value"
+            operator: "is_falsy"
+
+      - step: "Verify exactly one attendance record exists for employee/date"
+        action: "search"
+        model: "hr.timesheet_attendance"
+        domain:
+          - ["employee_id", "=", "EVAL: registry['employee'].id"]
+          - ["date", "=", 2026-08-23]
+        expect_count: 1
