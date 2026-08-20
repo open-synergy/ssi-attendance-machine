@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2026 OpenSynergy Indonesia
+     Copyright 2026 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo noupdate="1">
+    <!-- Binds both attendance_machine_import.data job methods to the
+         dedicated "root.attendance_machine" channel above. Without these
+         records queue_job falls back to job_default_config(), whose channel
+         is "root".
+
+         retry_pattern and related_action are intentionally left unset: this
+         only changes which channel the jobs run on, not how they retry. -->
+    <record
+        id="job_function_attendance_machine_import_data_process_attendance"
+        model="queue.job.function"
+    >
+        <field name="model_id" ref="model_attendance_machine_import_data" />
+        <field name="method">_process_attendance</field>
+        <field name="channel_id" ref="channel_attendance_machine" />
+    </record>
+
+    <record
+        id="job_function_attendance_machine_import_data_cancel_attendance"
+        model="queue.job.function"
+    >
+        <field name="model_id" ref="model_attendance_machine_import_data" />
+        <field name="method">_cancel_attendance</field>
+        <field name="channel_id" ref="channel_attendance_machine" />
+    </record>
+</odoo>

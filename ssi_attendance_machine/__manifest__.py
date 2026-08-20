@@ -54,6 +54,8 @@
         "data/approval_template_data.xml",
         "data/policy_template_data.xml",
         # Queue automation
+        "data/queue_job_channel_data.xml",
+        "data/queue_job_function_data.xml",
         "data/ir_actions_server_data.xml",
         "data/base_automation_data.xml",
         # Menu

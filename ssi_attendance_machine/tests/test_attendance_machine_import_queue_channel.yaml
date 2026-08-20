@@ -1,0 +1,57 @@
+scenarios:
+  - name: "channel_attendance_machine is a child of root named attendance_machine"
+    steps:
+      - step: "Look up the channel_attendance_machine record"
+        action: "ref"
+        xml_id: "ssi_attendance_machine.channel_attendance_machine"
+        save_as: "channel"
+      - step: "Assert channel name, parent and complete name"
+        action: "assert"
+        target: "channel"
+        asserts:
+          name:
+            type: "value"
+            expected: "attendance_machine"
+          parent_id.name:
+            type: "value"
+            expected: "root"
+          complete_name:
+            type: "value"
+            expected: "root.attendance_machine"
+
+  - name: "both job functions bind the data line methods to that channel"
+    steps:
+      - step: "Look up the _process_attendance job function"
+        action: "ref"
+        xml_id: "ssi_attendance_machine.job_function_attendance_machine_import_data_process_attendance"
+        save_as: "process_function"
+      - step: "Assert model, method and channel of the _process_attendance function"
+        action: "assert"
+        target: "process_function"
+        asserts:
+          model_id.model:
+            type: "value"
+            expected: "attendance_machine_import.data"
+          method:
+            type: "value"
+            expected: "_process_attendance"
+          channel_id.complete_name:
+            type: "value"
+            expected: "root.attendance_machine"
+      - step: "Look up the _cancel_attendance job function"
+        action: "ref"
+        xml_id: "ssi_attendance_machine.job_function_attendance_machine_import_data_cancel_attendance"
+        save_as: "cancel_function"
+      - step: "Assert model, method and channel of the _cancel_attendance function"
+        action: "assert"
+        target: "cancel_function"
+        asserts:
+          model_id.model:
+            type: "value"
+            expected: "attendance_machine_import.data"
+          method:
+            type: "value"
+            expected: "_cancel_attendance"
+          channel_id.complete_name:
+            type: "value"
+            expected: "root.attendance_machine"
