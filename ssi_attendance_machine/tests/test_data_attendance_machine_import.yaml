@@ -2748,4 +2748,5 @@ scenarios:
         domain:
           - ["employee_id", "=", "EVAL: registry['employee'].id"]
           - ["date", "=", 2026-08-23]
+        save_as: "attendance_count_check"
         expect_count: 1
