@@ -140,6 +140,35 @@ class AttendanceMachineImportData(models.Model):
             limit=1,
         )
 
+    def _find_open_attendance(self, employee, att_date, before_dt):
+        """Return the most recent still-open attendance to close.
+
+        Used by the ``single`` row mode branch of
+        ``_run_process_attendance`` so a check-in-only row can close an
+        attendance opened earlier the same day by a *different* import
+        row -- including one scanned on a different machine -- instead
+        of always spawning a second, never-closed attendance.
+
+        :param employee: ``hr.employee`` the attendance belongs to
+        :param att_date: attendance date to match
+        :param before_dt: only an attendance whose ``check_in`` is
+            strictly earlier than this UTC datetime is considered, so
+            a row can never close an attendance opened after it --
+            including one it would otherwise close on itself
+        :return: ``hr.timesheet_attendance`` recordset with at most
+            one record, empty when no open attendance qualifies
+        """
+        return self.env["hr.timesheet_attendance"].search(
+            [
+                ("employee_id", "=", employee.id),
+                ("date", "=", att_date),
+                ("check_out", "=", False),
+                ("check_in", "<", before_dt),
+            ],
+            order="check_in desc",
+            limit=1,
+        )
+
     def _prepare_attendance_vals(
         self, employee, sheet, att_date, check_in, check_out=False
     ):
@@ -464,7 +493,8 @@ Solution: Create or open a timesheet for this employee covering the date,
                     )
                 )
 
-            # Look for an existing record with the same employee, date, check_in
+            # Level 1: an existing record with the exact same employee,
+            # date and check_in -- retrying an already-processed row.
             existing = Attendance.search(
                 [
                     ("employee_id", "=", employee.id),
@@ -478,12 +508,30 @@ Solution: Create or open a timesheet for this employee covering the date,
                     existing.check_out = check_out_utc
                 self.attendance_id = existing.id
             else:
-                att = Attendance.create(
-                    self._prepare_attendance_vals(
-                        employee, sheet, att_date, check_in_utc, check_out_utc
-                    )
+                # Level 2: a check-in-only row closes an earlier open
+                # attendance for the same employee/date, regardless of
+                # which import document or machine created it, instead
+                # of spawning a second attendance that never closes.
+                # Rows that carry both check-in and check-out skip this
+                # level entirely, so a normal full-day row keeps
+                # spawning its own attendance as before.
+                open_attendance = (
+                    self._find_open_attendance(employee, att_date, check_in_utc)
+                    if not check_out_utc
+                    else Attendance
                 )
-                self.attendance_id = att.id
+                if open_attendance:
+                    open_attendance.check_out = check_in_utc
+                    self.attendance_id = open_attendance.id
+                else:
+                    # Level 3: nothing to merge with -- create a new
+                    # attendance record.
+                    att = Attendance.create(
+                        self._prepare_attendance_vals(
+                            employee, sheet, att_date, check_in_utc, check_out_utc
+                        )
+                    )
+                    self.attendance_id = att.id
 
         elif mapping.row_mode == "separate":
             row_type_column = mapping.row_type_column or ""
