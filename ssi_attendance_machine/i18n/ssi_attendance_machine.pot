@@ -120,6 +120,7 @@ msgstr ""
 #. module: ssi_attendance_machine
 #: code:addons/ssi_attendance_machine/models/attendance_machine_import_data.py:0
 #: code:addons/ssi_attendance_machine/models/attendance_machine_import_data.py:0
+#: code:addons/ssi_attendance_machine/models/attendance_machine_import_data.py:0
 #, python-format
 msgid ""
 "\n"
@@ -289,6 +290,11 @@ msgstr ""
 #. module: ssi_attendance_machine
 #: model:res.groups,name:ssi_attendance_machine.attendance_machine_import_all_group
 msgid "All"
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: model:ir.model.fields,field_description:ssi_attendance_machine.field_attendance_machine_csv_mapping__allow_sign_out_only
+msgid "Allow Sign-Out-Only Attendance"
 msgstr ""
 
 #. module: ssi_attendance_machine
@@ -1887,8 +1893,24 @@ msgid "Western (Windows-1252)"
 msgstr ""
 
 #. module: ssi_attendance_machine
+#: model:ir.model.fields,help:ssi_attendance_machine.field_attendance_machine_csv_mapping__allow_sign_out_only
+msgid ""
+"When checked, a sign-out row that finds no open check-in attendance to close"
+" creates a placeholder attendance instead of raising an error: check-in and "
+"check-out are both set to the sign-out scan time, and the placeholder is "
+"tagged with a system reason so it can be found and corrected later. When "
+"unchecked (default), such a row still raises an error, matching the previous"
+" behavior. Used when Row Mode = Separate Rows."
+msgstr ""
+
+#. module: ssi_attendance_machine
 #: model:attendance_machine_model,name:ssi_attendance_machine.attendance_machine_model_demo_zkteco_k40
 msgid "ZKTeco K40"
+msgstr ""
+
+#. module: ssi_attendance_machine
+#: model:hr.attendance_reason,name:ssi_attendance_machine.hr_attendance_reason_machine_no_sign_in
+msgid "[MACHINE] No sign-in recorded"
 msgstr ""
 
 #. module: ssi_attendance_machine
