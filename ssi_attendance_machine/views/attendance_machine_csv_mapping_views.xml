@@ -159,6 +159,10 @@
                                     name="sign_out_value"
                                     attrs="{'invisible': [('row_mode','!=','separate')]}"
                                 />
+                            <field
+                                    name="allow_sign_out_only"
+                                    attrs="{'invisible': [('row_mode','!=','separate')]}"
+                                />
                         </group>
                         <group
                                 attrs="{'invisible': ['|',('row_mode','!=','separate'),('datetime_mode','!=','combined')]}"

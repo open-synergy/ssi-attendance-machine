@@ -214,6 +214,20 @@ class AttendanceMachineCsvMapping(
             "Used when Row Mode = Separate Rows."
         ),
     )
+    allow_sign_out_only = fields.Boolean(
+        string="Allow Sign-Out-Only Attendance",
+        default=False,
+        help=(
+            "When checked, a sign-out row that finds no open check-in "
+            "attendance to close creates a placeholder attendance instead "
+            "of raising an error: check-in and check-out are both set to "
+            "the sign-out scan time, and the placeholder is tagged with a "
+            "system reason so it can be found and corrected later. "
+            "When unchecked (default), such a row still raises an error, "
+            "matching the previous behavior. Used when Row Mode = "
+            "Separate Rows."
+        ),
+    )
 
     # --- Row exclusion ---
 
