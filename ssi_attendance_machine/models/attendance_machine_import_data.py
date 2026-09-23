@@ -169,6 +169,72 @@ class AttendanceMachineImportData(models.Model):
             limit=1,
         )
 
+    def _create_sign_out_only_attendance(self, employee, att_date, dt_utc):
+        """Create (or reuse) a placeholder attendance for a lone sign-out.
+
+        Only called from the ``separate`` row-mode branch of
+        ``_run_process_attendance``, and only when the mapping's
+        ``allow_sign_out_only`` flag is enabled and no open attendance
+        was found to close. Both ``check_in`` and ``check_out`` are
+        set to the sign-out scan time -- so ``total_hour`` computes to
+        0 and ``_order`` placement is unaffected -- and
+        ``reason_check_in_id`` is tagged with the "no sign-in"
+        system reason so the placeholder can be found and corrected
+        later.
+
+        Idempotent: retrying the same sign-out event (e.g. a second
+        import of the same file) must not spawn a second placeholder,
+        so an existing attendance with the exact same
+        employee/date/check_in/check_out is reused instead of
+        creating a new one.
+
+        :param employee: ``hr.employee`` the placeholder belongs to
+        :param att_date: attendance date
+        :param dt_utc: sign-out scan time (UTC, naive) used for both
+            ``check_in`` and ``check_out``
+        :return: id of the placeholder (or reused) attendance
+        :raises UserError: if no open timesheet covers ``att_date``
+        """
+        self.ensure_one()
+        Attendance = self.env["hr.timesheet_attendance"]  # pylint: disable=invalid-name
+        existing = Attendance.search(
+            [
+                ("employee_id", "=", employee.id),
+                ("date", "=", att_date),
+                ("check_in", "=", dt_utc),
+                ("check_out", "=", dt_utc),
+            ],
+            limit=1,
+        )
+        if existing:
+            return existing.id
+        sheet = self._find_sheet(employee, att_date)
+        if not sheet:
+            raise UserError(
+                _(
+                    """
+Context: Processing attendance import data line
+Document: %s (sequence %s)
+Problem: No open timesheet found for employee '%s' on date %s
+Solution: Create or open a timesheet for this employee covering the date,
+          then retry the queue job"""
+                )
+                % (
+                    self.import_id.name or str(self.import_id.id),
+                    self.sequence,
+                    employee.name,
+                    att_date,
+                )
+            )
+        vals = self._prepare_attendance_vals(
+            employee, sheet, att_date, dt_utc, check_out=dt_utc
+        )
+        vals["reason_check_in_id"] = self.env.ref(
+            "ssi_attendance_machine.hr_attendance_reason_machine_no_sign_in"
+        ).id
+        att = Attendance.create(vals)
+        return att.id
+
     def _prepare_attendance_vals(
         self, employee, sheet, att_date, check_in, check_out=False
     ):
@@ -621,6 +687,10 @@ Solution: Create or open a timesheet for this employee covering the date,
                 if existing:
                     existing.check_out = dt_utc
                     self.attendance_id = existing.id
+                elif mapping.allow_sign_out_only:
+                    self.attendance_id = self._create_sign_out_only_attendance(
+                        employee, att_date, dt_utc
+                    )
                 else:
                     raise UserError(
                         _(

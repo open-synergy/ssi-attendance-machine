@@ -56,8 +56,12 @@
    > **If Row Mode is Separate Rows:** the **Check-in Column** / **Check-out Column**
    > pair is replaced by **Row Type Column** (the column that flags whether a row is a
    > check-in or check-out record), **Sign-in Value** (the value in **Row Type Column**
-   > that identifies a check-in row), and **Sign-out Value** (the value that identifies
-   > a check-out row).
+   > that identifies a check-in row), **Sign-out Value** (the value that identifies a
+   > check-out row), and **Allow Sign-Out-Only Attendance** (optional; when checked, a
+   > sign-out row that finds no open check-in attendance to close creates a placeholder
+   > attendance instead of raising an error, tagged with the system reason "[MACHINE] No
+   > sign-in recorded" so it can be found and corrected later. Leave unchecked to keep
+   > the previous behavior — such a row raises an error).
    >
    > **If Datetime Mode is Separate:** each combined datetime column is replaced by a
    > date/time column pair — **Check-in Date Column** + **Check-in Time Column**, and

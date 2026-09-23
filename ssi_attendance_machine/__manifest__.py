@@ -53,6 +53,8 @@
         "data/sequence_template_data.xml",
         "data/approval_template_data.xml",
         "data/policy_template_data.xml",
+        # Attendance reasons
+        "data/hr_attendance_reason_data.xml",
         # Queue automation
         "data/queue_job_channel_data.xml",
         "data/queue_job_function_data.xml",
