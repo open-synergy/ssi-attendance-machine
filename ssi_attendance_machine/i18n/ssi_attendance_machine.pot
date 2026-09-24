@@ -394,6 +394,13 @@ msgid "Attendance Machine Import Data - Ignore"
 msgstr ""
 
 #. module: ssi_attendance_machine
+#: model:ir.actions.server,name:ssi_attendance_machine.ir_cron_attendance_machine_import_try_action_done_ir_actions_server
+#: model:ir.cron,cron_name:ssi_attendance_machine.ir_cron_attendance_machine_import_try_action_done
+#: model:ir.cron,name:ssi_attendance_machine.ir_cron_attendance_machine_import_try_action_done
+msgid "Attendance Machine Import: Try Action Done"
+msgstr ""
+
+#. module: ssi_attendance_machine
 #: model:ir.actions.act_window,name:ssi_attendance_machine.attendance_machine_import_action
 #: model:ir.ui.menu,name:ssi_attendance_machine.attendance_machine_import_menu
 msgid "Attendance Machine Imports"
