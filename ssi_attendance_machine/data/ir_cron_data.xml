@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2026 OpenSynergy Indonesia
+     Copyright 2026 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+<data>
+<record id="ir_cron_attendance_machine_import_try_action_done" model="ir.cron">
+    <field name="name">Attendance Machine Import: Try Action Done</field>
+    <field name="model_id" ref="model_attendance_machine_import" />
+    <field name="state">code</field>
+    <field name="code">model._cron_try_action_done()</field>
+    <field name="interval_number">10</field>
+    <field name="interval_type">minutes</field>
+    <field name="numbercall">-1</field>
+    <field name="doall" eval="False" />
+    <field name="active" eval="True" />
+    <field name="user_id" ref="base.user_root" />
+</record>
+</data>
+</odoo>

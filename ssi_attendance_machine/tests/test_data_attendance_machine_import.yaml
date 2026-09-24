@@ -3250,3 +3250,232 @@ scenarios:
           reason_check_in_id:
             type: "value"
             operator: "is_falsy"
+
+  - name:
+      "Attendance Machine Import - Cron completes a queue_done import whose retried line
+      finished outside a finished batch"
+    steps:
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "BL-0065 Cron Sweep Test Machine"
+          code: "BL65A1"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-09-24"
+          machine_id: "REC: machine.id"
+
+      - step: "Force import into Queue To Done state"
+        action: "write"
+        target: "machine_import"
+        values:
+          state: "queue_done"
+
+      - step: "Create a resolved (done) data line"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_done"
+        values:
+          import_id: "REC: machine_import.id"
+          sequence: 1
+          state: "done"
+
+      - step: "Create the last remaining error data line, without a queue job link"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_error"
+        values:
+          import_id: "REC: machine_import.id"
+          sequence: 2
+          state: "error"
+          error_message: "Sample error, will be retried"
+
+      - step: "Create a queue job batch already in the terminal 'finished' state"
+        action: "create"
+        model: "queue.job.batch"
+        save_as: "finished_batch"
+        values:
+          name: "BL-0065 Finished Batch"
+          user_id: "REF: base.user_admin"
+          state: "finished"
+
+      - step:
+          "Attach the finished batch to the import -- the batch became finished before
+          the retry below, reproducing the reported bug"
+        action: "write"
+        target: "machine_import"
+        values:
+          done_queue_job_batch_id: "REC: finished_batch.id"
+
+      - step:
+          "Assert the import stays in queue_done: the error line is still unresolved, so
+          the write above (which re-evaluates via base.automation) is a no-op"
+        action: "assert"
+        target: "machine_import"
+        asserts:
+          state:
+            type: "value"
+            expected: "queue_done"
+
+      - step: "Retry the error line"
+        action: "call"
+        target: "data_line_error"
+        method: "action_retry"
+
+      - step:
+          "Assert the line is rescheduled through a new pending queue job that did NOT
+          join the finished batch (queue.job.create only attaches to a 'draft' batch)"
+        action: "assert"
+        target: "data_line_error"
+        refresh: true
+        asserts:
+          state:
+            type: "value"
+            expected: "draft"
+          queue_job_id:
+            type: "value"
+            operator: "is_truthy"
+          queue_job_id.job_batch_id:
+            type: "value"
+            operator: "is_falsy"
+
+      - step:
+          "Simulate the retried job finishing: write the line straight to 'done', the
+          way a queue job worker would -- this does not touch the import record, so
+          nothing re-evaluates it"
+        action: "write"
+        target: "data_line_error"
+        values:
+          state: "done"
+          error_message: false
+
+      - step:
+          "Assert the import is still stuck in queue_done: the batch is already finished
+          (check_state() no-ops) and the finishing job was never part of any batch, so
+          nothing triggered a re-check"
+        action: "assert"
+        target: "machine_import"
+        refresh: true
+        asserts:
+          state:
+            type: "value"
+            expected: "queue_done"
+
+      - step: "Run the scheduled sweep"
+        action: "call"
+        target: "machine_import"
+        method: "_cron_try_action_done"
+
+      - step: "Assert the sweep completed the import"
+        action: "assert"
+        target: "machine_import"
+        refresh: true
+        asserts:
+          state:
+            type: "value"
+            expected: "done"
+
+  - name:
+      "Attendance Machine Import - Cron sweep leaves a queue_done import with an
+      unfinished line untouched"
+    steps:
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "BL-0065 Cron Sweep Draft Line Test Machine"
+          code: "BL65A2"
+
+      - step: "Create attendance machine import"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-09-24"
+          machine_id: "REC: machine.id"
+
+      - step: "Force import into Queue To Done state"
+        action: "write"
+        target: "machine_import"
+        values:
+          state: "queue_done"
+
+      - step: "Create a resolved (done) data line"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_done"
+        values:
+          import_id: "REC: machine_import.id"
+          sequence: 1
+          state: "done"
+
+      - step: "Create a data line still in draft"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_draft"
+        values:
+          import_id: "REC: machine_import.id"
+          sequence: 2
+
+      - step: "Run the scheduled sweep"
+        action: "call"
+        target: "machine_import"
+        method: "_cron_try_action_done"
+
+      - step: "Assert the import stays in queue_done"
+        action: "assert"
+        target: "machine_import"
+        refresh: true
+        asserts:
+          state:
+            type: "value"
+            expected: "queue_done"
+
+  - name:
+      "Attendance Machine Import - Cron sweep never touches an import outside queue_done"
+    steps:
+      - step: "Create attendance machine"
+        action: "create"
+        model: "attendance_machine"
+        save_as: "machine"
+        values:
+          name: "BL-0065 Cron Sweep Draft Import Test Machine"
+          code: "BL65A3"
+
+      - step: "Create attendance machine import, left in the default draft state"
+        action: "create"
+        model: "attendance_machine_import"
+        save_as: "machine_import"
+        values:
+          date: "2026-09-24"
+          machine_id: "REC: machine.id"
+
+      - step: "Create a resolved (done) data line"
+        action: "create"
+        model: "attendance_machine_import.data"
+        save_as: "data_line_done"
+        values:
+          import_id: "REC: machine_import.id"
+          sequence: 1
+          state: "done"
+
+      - step: "Run the scheduled sweep"
+        action: "call"
+        target: "machine_import"
+        method: "_cron_try_action_done"
+
+      - step: "Assert the import stays in draft -- the sweep only searches queue_done"
+        action: "assert"
+        target: "machine_import"
+        refresh: true
+        asserts:
+          state:
+            type: "value"
+            expected: "draft"
