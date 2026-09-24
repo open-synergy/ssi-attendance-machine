@@ -7,6 +7,7 @@ import csv
 import hashlib
 import io
 import json
+import logging
 
 import xlrd
 
@@ -14,6 +15,8 @@ from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
 from odoo.addons.ssi_decorator import ssi_decorator
+
+_logger = logging.getLogger(__name__)
 
 
 class AttendanceMachineImport(models.Model):  # pylint: disable=too-few-public-methods
@@ -534,6 +537,37 @@ and that Sheet Index points to an existing worksheet
         if batch:
             batch.check_state()
         self.action_done()
+        return True
+
+    @api.model
+    def _cron_try_action_done(self):
+        """Reconcile every import stuck in ``queue_done``.
+
+        The document normally reaches ``done`` through
+        ``base.automation`` when ``done_queue_job_batch_state``
+        becomes ``finished``, but a line resolved through ``_retry()``
+        is often processed by a job outside that batch -- or by a job
+        in a batch that already turned ``finished`` before the retry
+        -- so nothing ever re-evaluates the document. This scheduled
+        sweep closes that gap: it does not depend on batch state or
+        job membership, only on ``_try_action_done()``'s own idempotent
+        check (no-op unless every data line is ``done``/``ignored``).
+
+        Each record runs inside its own savepoint so one document's
+        exception does not stop the sweep from reaching the rest;
+        the exception is only logged.
+        """
+        records = self.env[self._name].search([("state", "=", "queue_done")])
+        for record in records:
+            try:
+                with self.env.cr.savepoint():
+                    record._try_action_done()
+            except Exception:  # pylint: disable=broad-except
+                _logger.exception(
+                    "Scheduled _try_action_done() failed for %s (ID %s)",
+                    record._name,
+                    record.id,
+                )
         return True
 
     @ssi_decorator.insert_on_form_view()

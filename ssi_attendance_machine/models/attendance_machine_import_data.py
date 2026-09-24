@@ -834,9 +834,22 @@ Solution: Fill in the ignore reason before ignoring this line"""
         Clears ``error_message``, then either requeues the existing
         ``queue_job_id`` (any state except ``wait_dependencies``,
         including ``done``, so already-settled lines can be retried
-        again) or enqueues a new ``_process_attendance`` job -- in the
-        import's ``done_queue_job_batch_id`` -- when no job is linked
-        yet, storing the new job on ``queue_job_id``.
+        again) or enqueues a new ``_process_attendance`` job -- passed
+        the import's ``done_queue_job_batch_id`` as ``job_batch`` --
+        when no job is linked yet, storing the new job on
+        ``queue_job_id``.
+
+        The new job only actually joins that batch when the batch is
+        still in state ``draft`` (``queue.job.create()`` only sets
+        ``job_batch_id`` in that case -- see
+        ``queue_job_batch/models/queue_job.py``). Once the batch has
+        moved on (``enqueued``/``progress``/``finished``), the job is
+        created standing outside any batch, and its eventual
+        completion will not by itself re-evaluate the import: nothing
+        calls ``check_state()`` on a batch no job belongs to, and a
+        batch already ``finished`` no-ops on ``check_state()`` even if
+        it did. Resolving such a line depends on the scheduled sweep,
+        ``_cron_try_action_done()``, rather than on batch/job wiring.
 
         Does not call ``import_id._try_action_done()``: the document
         cannot be considered finished while a retry has merely been

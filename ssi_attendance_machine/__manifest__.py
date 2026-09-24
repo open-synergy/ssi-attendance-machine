@@ -60,6 +60,7 @@
         "data/queue_job_function_data.xml",
         "data/ir_actions_server_data.xml",
         "data/base_automation_data.xml",
+        "data/ir_cron_data.xml",
         # Menu
         "menu.xml",
         # Views

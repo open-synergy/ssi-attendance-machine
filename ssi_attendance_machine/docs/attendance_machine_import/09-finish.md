@@ -30,7 +30,12 @@
 - **Config:** A `base.automation` on this model recomputes the queue result
   automatically, on every write, whenever **To Done Queue Job Batch State**
   (`done_queue_job_batch_state`) becomes **Finished** — so the document frequently
-  reaches **Done** on its own, without any button on this page being clicked.
+  reaches **Done** on its own, without any button on this page being clicked. A
+  scheduled action (`ir.cron`, "Attendance Machine Import: Try Action Done") also sweeps
+  every document in **Queue To Done** every 10 minutes and re-checks completion,
+  independently of the automation above — this covers rows resolved through
+  **Retry**/**Retry All Errors**, whose queue job may finish outside any batch, or in a
+  batch that already turned **Finished** before the retry.
 - **Access:** User is in group _Attendance Machine Import — User_ (or above) to use
   **Requeue**, **Recompute Queue Done Result**, **Retry All Errors**, and the row-level
   **Retry**, **Ignore**, and **Edit Data** buttons — all of them require write access
